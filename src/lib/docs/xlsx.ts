@@ -1,6 +1,24 @@
 import { placeCells, type DocModel } from './model.ts'
 
 const FONT = 'Times New Roman'
+const LINE_PT = 11.5 // висота одного рядка тексту 9 пт (одинарний інтервал)
+
+/** Скільки рядків займе текст у колонці шириною maxChars символів (перенос по словах). */
+function wrapLines(text: string, maxChars: number): number {
+  let lines = 0
+  for (const para of text.split('\n')) {
+    let cur = 0
+    lines++
+    for (const word of para.split(' ')) {
+      const w = word.length
+      if (cur === 0) cur = w
+      else if (cur + 1 + w <= maxChars) cur += 1 + w
+      else { lines++; cur = w }
+      while (cur > maxChars) { lines++; cur -= maxChars }
+    }
+  }
+  return lines
+}
 
 /** xlsx із форматуванням: об'єднані клітинки, рамки, A4 альбомна, вписування по ширині. */
 export async function renderXlsx(m: DocModel): Promise<Blob> {
@@ -38,7 +56,21 @@ export async function renderXlsx(m: DocModel): Promise<Blob> {
     for (let i = start; i <= end; i++) for (let j = 1; j <= nc; j++) {
       ws.getCell(i, j).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } }
     }
-    if (header) for (let i = start; i <= end; i++) ws.getRow(i).height = 30
+    if (header) {
+      // Висота рядків заголовка за реальною кількістю рядків тексту; об'єднані клітинки не мають зайвого простору.
+      const heights = rows.map(() => LINE_PT + 4)
+      const placed = placeCells(rows, nc)
+      const need = (p: (typeof placed)[number]) => {
+        const chars = (ws.columns.slice(p.col, p.col + p.colSpan).reduce((a, c) => a + (c.width ?? 8), 0)) * 0.95
+        return wrapLines(p.cell.text, Math.max(3, Math.floor(chars))) * LINE_PT + 4
+      }
+      for (const p of placed) if (p.rowSpan === 1) heights[p.row] = Math.max(heights[p.row], need(p))
+      for (const p of placed) {
+        const have = heights.slice(p.row, p.row + p.rowSpan).reduce((a, b) => a + b, 0)
+        if (need(p) > have) heights[p.row + p.rowSpan - 1] += need(p) - have
+      }
+      heights.forEach((h, i) => { ws.getRow(start + i).height = Math.ceil(h) })
+    }
     r = end + 1
   }
   table(m.header, true)

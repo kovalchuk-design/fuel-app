@@ -32,6 +32,8 @@ export async function renderDocx(m: DocModel): Promise<Blob> {
             margins: { top: 30, bottom: 30, left: 60, right: 60 },
             children: [new D.Paragraph({
               alignment: jc(header ? 'center' : (p.cell.align ?? m.bodyAlign[p.col])),
+              // Одинарний інтервал без відступів: заголовок не «розтягується» на всю висоту клітинки.
+              spacing: { before: 0, after: 0, line: 240, lineRule: D.LineRuleType.AUTO },
               children: [run(p.cell.text, 9, header || !!p.cell.bold)],
             })],
           })
@@ -62,6 +64,8 @@ export async function renderDocx(m: DocModel): Promise<Blob> {
   }
 
   const doc = new D.Document({
+    // Явні значення за замовчуванням: Word, Pages і перегляд не підставляють власні відступи.
+    styles: { default: { document: { run: { font: FONT, size: 18 }, paragraph: { spacing: { before: 0, after: 0, line: 240, lineRule: D.LineRuleType.AUTO } } } } },
     sections: [{
       properties: { page: { size: { width: 11906, height: 16838, orientation: D.PageOrientation.LANDSCAPE }, margin: { top: 700, bottom: 700, left: 680, right: 680 } } },
       children,
