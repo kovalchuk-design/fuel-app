@@ -88,3 +88,25 @@ export function ConfirmDialog({ title, message, confirmLabel = 'Видалити
     </div>
   )
 }
+
+/** Модальне вікно з довільним вмістом; закривається Esc, кліком поза вікном або кнопкою. */
+export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return (
+    <div className="fixed inset-0 z-20 grid place-items-center overflow-y-auto bg-ink/50 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="modal-title" className="w-full max-w-lg rounded-lg border border-line bg-surface">
+        <header className="flex items-center justify-between border-b border-line px-5 py-3">
+          <h2 id="modal-title" className="text-[15px] font-bold">{title}</h2>
+          <button type="button" aria-label="Закрити" title="Закрити" onClick={onClose} className="grid size-8 place-items-center rounded-md text-muted hover:bg-stripe hover:text-ink">
+            <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" /></svg>
+          </button>
+        </header>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
+  )
+}
