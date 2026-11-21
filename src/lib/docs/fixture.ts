@@ -48,7 +48,7 @@ export function octoberFixture(): ReportInput {
     id: `r${i}`, period_id: 'p', fuel_type_id: f as string, liters: l as number, kg: kg as number | null, doc_ref: null,
   }))
   return {
-    period: { id: 'p', date_from: '2026-09-25', date_to: '2026-10-25', label: 'вересень', report_year: 2026, report_month: 9, status: 'draft' },
+    period: { id: 'p', date_from: '2026-09-25', date_to: '2026-10-25', label: 'жовтень', report_year: 2026, report_month: 10, status: 'draft' },
     vehicles, fuels, vehicleFuels, balances, receipts, waybills,
     periodVehicles: Object.entries(ODO).map(([s, [open]]) => ({ period_id: 'p', vehicle_id: vid(Number(s)), odometer_open: open })),
     settings: {
