@@ -105,7 +105,7 @@ export function buildRaspiska(inp: ReportInput): DocModel {
   return {
     id: 'raspiska',
     fileName: `Розшифровка ${dmy(inp.period.date_from)}-${dmy(inp.period.date_to)}`,
-    colWidths: [4, 17, 9, 8, 8, 17, 8, 8, 9, 9, 8, 7, 8],
+    colWidths: [4, 15, 9, 8, 8, 16, 8, 8, 10, 10.5, 8, 8.5, 8],
     before: [
       { text: 'Розшифровка напрацювання техніки та витрати ПММ', align: 'center', bold: true, size: 13 },
       { text: `за військову частину ${inp.settings.unit_code} в період ${period(inp.period, true)}`, align: 'center', size: 11 },
@@ -160,7 +160,7 @@ export function buildVidomist(inp: ReportInput): DocModel {
   return {
     id: 'vidomist',
     fileName: `Відомість заміру ${dmy(inp.period.date_to)}`,
-    colWidths: [4, 7, 17, 16, 11, 10, 9, 9, 9, 7, 7, 10],
+    colWidths: [4, 7, 17, 14, 11, 10, 9, 9, 9, 8.5, 9.5, 10],
     before: [
       { text: 'В І Д О М І С Т Ь', align: 'center', bold: true, size: 13 },
       { text: `заміру автомобільного пального поточного забезпечення в баках машин військової частини ${inp.settings.unit_code}`, align: 'center', size: 11 },
@@ -215,7 +215,7 @@ export function buildDonesennya(inp: ReportInput): DocModel {
   return {
     id: 'donesennya',
     fileName: `Донесення ${dmy(inp.period.date_from)}-${dmy(inp.period.date_to)}`,
-    colWidths: [4, 22, 5, 9, 9, 10, 10, 9, 9, 9, 7, 7],
+    colWidths: [4, 19, 5, 9, 9, 10, 10, 9, 9, 9, 8.5, 9.5],
     before: [
       { text: 'Додаток 17', align: 'right', size: 9 },
       { text: 'до Інструкції з обліку військового майна у Збройних Силах України (пункт 13 розділу ІV)', align: 'right', size: 9 },
