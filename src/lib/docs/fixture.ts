@@ -37,8 +37,8 @@ const KG_OPEN: Record<string, number> = { [A80DZ]: 118, [A80]: 22, [A92]: 4, [A9
 
 export function octoberFixture(): ReportInput {
   const vid = (s: number) => `v${s}`
-  const vehicles = VEHICLES.map(([seq, name, vehicle_type, military_number, is_generator]) => ({ id: vid(seq), seq, name, vehicle_type, military_number, unit: 'ВМЗ', is_generator }))
-  const fuels = FUELS.map((name, i) => ({ id: name, name, kind: 'fuel' as const, sort: i + 1 }))
+  const vehicles = VEHICLES.map(([seq, name, vehicle_type, military_number, is_generator]) => ({ id: vid(seq), seq, name, vehicle_type, military_number, unit: 'ВМЗ', is_generator, fuel_class: (seq <= 5 ? 'petrol' : 'diesel') as 'petrol' | 'diesel' }))
+  const fuels = FUELS.map((name, i) => ({ id: name, name, kind: 'fuel' as const, category: (name.startsWith('А-') ? 'petrol' : 'diesel') as 'petrol' | 'diesel', sort: i + 1 }))
   const posOf = new Map<number, number>()
   const vehicleFuels = ROWS.map(([s, f]) => { const p = (posOf.get(s) ?? 0) + 1; posOf.set(s, p); return { vehicle_id: vid(s), fuel_type_id: f, position: p } })
   const balances = ROWS.map(([s, f, o]) => ({ period_id: 'p', vehicle_id: vid(s), fuel_type_id: f, opening: o, measured_closing: null }))
