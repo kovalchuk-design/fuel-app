@@ -3,15 +3,15 @@ import { useRefs } from '../auth/Refs.tsx'
 import DocumentsPanel from '../components/DocumentsPanel.tsx'
 import { Card, ErrorText, fmt, num, Scroll, tbl, td, th, thR } from '../components/ui.tsx'
 import { useAsync } from '../hooks/useAsync.ts'
-import { aggregateByFuel, buildVehicleFuelRows, reconcileReceipts, validatePeriod } from '../lib/calc/index.ts'
-import { getPeriod, getSettings, listBalances, listReceipts, listWaybills } from '../lib/db.ts'
+import { aggregateByFuel, buildVehicleFuelRows, reconcileReceipts, validatePeriod, vehicleOdometers } from '../lib/calc/index.ts'
+import { getPeriod, getSettings, listBalances, listPeriodVehicles, listReceipts, listWaybills } from '../lib/db.ts'
 
 export default function Reconcile() {
   const { id = '' } = useParams()
   const { vehicles, fuels, vehicleFuels } = useRefs()
   const { data, error } = useAsync(async () => {
-    const [bal, rec, wb, period, settings] = await Promise.all([listBalances(id), listReceipts(id), listWaybills(id), getPeriod(id), getSettings()])
-    return { bal, rec, wb, period, settings }
+    const [bal, rec, wb, period, settings, pv] = await Promise.all([listBalances(id), listReceipts(id), listWaybills(id), getPeriod(id), getSettings(), listPeriodVehicles(id)])
+    return { bal, rec, wb, period, settings, pv }
   }, [id])
   if (error) return <ErrorText>{error}</ErrorText>
   if (!data) return <p className="text-muted">Завантаження…</p>
@@ -22,6 +22,7 @@ export default function Reconcile() {
   }))
   const receipts = data.rec.map((r) => ({ fuelTypeId: r.fuel_type_id, liters: r.liters }))
   const rows = buildVehicleFuelRows(data.bal.map((b) => ({ vehicleId: b.vehicle_id, fuelTypeId: b.fuel_type_id, opening: b.opening })), waybills)
+  const odo = vehicleOdometers(new Map(data.pv.map((x) => [x.vehicle_id, x.odometer_open])), waybills)
   const totals = aggregateByFuel(rows, receipts)
   const recon = reconcileReceipts(rows, receipts).filter((r) => r.supplier !== 0 || r.distributed !== 0)
   const issues = validatePeriod(rows, receipts, waybills)
@@ -49,7 +50,7 @@ export default function Reconcile() {
 
       <DocumentsPanel
         blocked={issues.length > 0 || rows.length === 0}
-        input={{ period: data.period, vehicles, fuels, vehicleFuels, balances: data.bal, receipts: data.rec, waybills: data.wb, settings: data.settings }}
+        input={{ period: data.period, vehicles, fuels, vehicleFuels, balances: data.bal, periodVehicles: data.pv, receipts: data.rec, waybills: data.wb, settings: data.settings }}
       />
 
       <Card title="Звірка надходжень">
@@ -93,10 +94,10 @@ export default function Reconcile() {
           <table className={tbl}>
             <thead><tr><th className={th}>Техніка</th><th className={th}>Пальне</th><th className={thR}>Пробіг, км</th><th className={thR}>Початок</th><th className={thR}>Отримано</th><th className={thR}>Використано</th><th className={thR}>Кінець</th></tr></thead>
             <tbody>
-              {rows.map((r) => (
+              {rows.map((r, i) => (
                 <tr key={r.vehicleId + r.fuelTypeId} className="border-t border-line hover:bg-stripe">
                   <td className={`${td} font-semibold`}>{vname(r.vehicleId)}</td><td className={td}>{fname(r.fuelTypeId)}</td>
-                  <td className={`${num} text-muted`}>{fmt(r.km)}</td>
+                  <td className={`${num} text-muted`}>{rows[i - 1]?.vehicleId === r.vehicleId ? '' : fmt(odo(r.vehicleId).km)}</td>
                   {[r.opening, r.received, r.used, r.closing].map((n, k) => <td key={k} className={`${num} ${k === 3 ? 'font-bold' : ''}`}>{fmt(n)}</td>)}
                 </tr>
               ))}

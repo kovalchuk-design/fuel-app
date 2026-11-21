@@ -3,12 +3,13 @@ import { useParams } from 'react-router'
 import { useRefs } from '../auth/Refs.tsx'
 import { Button, Card, DeleteX, Empty, ErrorText, Field, fmt, inputCls, num, Scroll, tbl, td, th, thR } from '../components/ui.tsx'
 import { useAsync } from '../hooks/useAsync.ts'
-import { deleteRow, insertRow, listWaybills } from '../lib/db.ts'
+import { deleteRow, insertRow, listPeriodVehicles, listWaybills } from '../lib/db.ts'
 
 export default function Waybills() {
   const { id = '' } = useParams()
   const { vehicles, fuels, vehicleFuels } = useRefs()
   const { data, error, reload } = useAsync(() => listWaybills(id), [id])
+  const pv = useAsync(() => listPeriodVehicles(id), [id])
   const [vehicleId, setVehicleId] = useState('')
   const [fuel, setFuel] = useState('')
   const [numr, setNum] = useState('')
@@ -23,6 +24,15 @@ export default function Waybills() {
   const fuelName = (fid: string) => fuels.find((f) => f.id === fid)?.name ?? fid
   const list = (data ?? []).filter((w) => !vehicleId || w.vehicle_id === vehicleId)
 
+  /** Початок спідометра підставляється: кінець останнього листа машини, а якщо листів ще немає, початкове значення періоду. */
+  function pickVehicle(vid: string) {
+    setVehicleId(vid); setFuel('')
+    const ends = (data ?? []).filter((w) => w.vehicle_id === vid && w.odometer_end != null).map((w) => w.odometer_end as number)
+    const open = pv.data?.find((x) => x.vehicle_id === vid)?.odometer_open
+    const start = ends.length ? Math.max(...ends) : open
+    setOdoS(start != null ? String(start) : ''); setOdoE('')
+  }
+
   async function add(e: FormEvent) {
     e.preventDefault()
     try {
@@ -31,13 +41,15 @@ export default function Waybills() {
         liters_used: Number(used || 0), liters_received: Number(recv || 0),
         odometer_start: odoS ? Number(odoS) : null, odometer_end: odoE ? Number(odoE) : null,
       })
-      setNum(''); setUsed(''); setRecv(''); setOdoS(''); setOdoE(''); setErr(null); await reload()
+      setNum(''); setUsed(''); setRecv(''); setErr(null); await reload()
+      if (odoE) setOdoS(odoE)
+      setOdoE('')
     } catch (x) { setErr((x as Error).message) }
   }
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[1fr_21rem]">
-      <Card title={vehicle ? `Шляхові листи: ${vehicle.name}` : 'Шляхові листи'} aside={vehicleId ? <button className="text-sm font-semibold text-accent hover:underline" onClick={() => { setVehicleId(''); setFuel('') }}>Показати всі</button> : undefined}>
+      <Card title={vehicle ? `Шляхові листи: ${vehicle.name}` : 'Шляхові листи'} aside={vehicleId ? <button className="text-sm font-semibold text-accent hover:underline" onClick={() => { setVehicleId(''); setFuel(''); setOdoS(''); setOdoE('') }}>Показати всі</button> : undefined}>
         {error && <ErrorText>{error}</ErrorText>}
         {list.length === 0 ? <Empty>Листів немає. Оберіть техніку справа й додайте перший.</Empty> : (
           <Scroll>
@@ -63,7 +75,7 @@ export default function Waybills() {
       <Card title="Додати шляховий лист">
         <form onSubmit={add} className="flex flex-col gap-3.5">
           <label className="flex flex-col gap-1 text-sm font-semibold">Техніка
-            <select required className={`${inputCls} font-normal`} value={vehicleId} onChange={(e) => { setVehicleId(e.target.value); setFuel('') }}>
+            <select required className={`${inputCls} font-normal`} value={vehicleId} onChange={(e) => pickVehicle(e.target.value)}>
               <option value="">Оберіть</option>
               {vehicles.map((v) => <option key={v.id} value={v.id}>{v.seq}. {v.name} ({v.military_number})</option>)}
             </select>
