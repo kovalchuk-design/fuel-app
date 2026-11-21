@@ -1,5 +1,5 @@
 import { aggregateByFuel, buildVehicleFuelRows, round2, vehicleOdometers, type VehicleFuelRow } from '../calc/index.ts'
-import type { BalanceRow, FuelType, Period, PeriodVehicle, ReceiptRow, Vehicle, VehicleFuel, WaybillRow } from '../db.ts'
+import type { BalanceRow, FuelType, Period, PeriodFuelKg, PeriodVehicle, ReceiptRow, Vehicle, VehicleFuel, WaybillRow } from '../db.ts'
 import { cell, type DCell, type DocModel, type Signature } from './model.ts'
 
 export interface SignatoryDef { title: string; rank: string; name: string }
@@ -16,6 +16,7 @@ export interface ReportInput {
   vehicleFuels: VehicleFuel[]
   balances: BalanceRow[]
   periodVehicles: PeriodVehicle[]
+  fuelKg: PeriodFuelKg[]
   receipts: ReceiptRow[]
   waybills: WaybillRow[]
   settings: DocSettings
@@ -203,28 +204,26 @@ export function buildDonesennya(inp: ReportInput): DocModel {
   const fo = fOrder(inp)
   const body: DCell[][] = []
   let no = 0
-  const density = new Map<string, number>()
-  const sums = new Map<string, { l: number; kg: number }>()
-  for (const r of inp.receipts) {
-    const s = sums.get(r.fuel_type_id) ?? { l: 0, kg: 0 }
-    if (r.kg) sums.set(r.fuel_type_id, { l: s.l + r.liters, kg: s.kg + r.kg })
-  }
-  for (const [f, s] of sums) density.set(f, s.kg / s.l)
-  const kgOf = (f: string, l: number) => (density.has(f) ? n(Math.round(l * density.get(f)!)) : '–')
+  // Кілограми — окремий облік, не густина × літри: початок вводиться вручну, «прибуло» — з надходжень,
+  // «вибуло» порожнє, залишок на кінець показується лише там, де руху не було (тоді він дорівнює початку).
+  const kgOpen = new Map(inp.fuelKg.map((k) => [k.fuel_type_id, k.kg_open]))
+  const blank = (v: number | null | undefined) => (v == null ? '' : n(v))
   for (const t of [...totals].sort((a, b) => fo.get(a.fuelTypeId)! - fo.get(b.fuelTypeId)!)) {
     if (!(t.opening || t.received || t.used || t.closing)) continue
     const fid = t.fuelTypeId
     const byWaybill = round2(rows.filter((r) => r.fuelTypeId === fid && !gen.has(r.vehicleId)).reduce((a, r) => a + r.used, 0))
     const byAgg = round2(t.used - byWaybill)
-    const recKg = inp.receipts.filter((r) => r.fuel_type_id === fid).reduce((a, r) => a + (r.kg ?? 0), 0)
+    const recKgs = inp.receipts.filter((r) => r.fuel_type_id === fid && r.kg != null)
+    const recKg = recKgs.length ? round2(recKgs.reduce((a, r) => a + (r.kg ?? 0), 0)) : null
+    const moved = t.received !== 0 || t.used !== 0
     no++
     body.push([
       cell(no, { rowSpan: 2 }), cell(fname(inp, fid), { rowSpan: 2 }), cell('л'), cell(nz(t.opening)), cell(nz(t.received)), cell(nz(byWaybill)), cell(nz(byAgg)), cell(nz(t.used)),
       cell(nz(t.closing)), cell(nz(t.used)), cell('0'), cell('0'),
     ])
     body.push([
-      cell('кг'), cell(kgOf(fid, t.opening)), cell(recKg ? n(recKg) : kgOf(fid, t.received)), cell(kgOf(fid, byWaybill)),
-      cell(kgOf(fid, byAgg)), cell(kgOf(fid, t.used)), cell(kgOf(fid, t.closing)), cell(''), cell(''), cell('')
+      cell('кг'), cell(blank(kgOpen.get(fid))), cell(blank(recKg)), cell(''), cell(''), cell(''),
+      cell(moved ? '' : blank(kgOpen.get(fid))), cell(''), cell(''), cell(''),
     ])
   }
   const s = inp.settings.signatories

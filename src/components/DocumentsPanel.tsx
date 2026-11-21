@@ -56,7 +56,7 @@ export default function DocumentsPanel({ input, blocked }: { input: ReportInput;
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-xs text-muted">Кілограми у Донесенні показуються для пального, де в надходженнях вказано кг: густина береться з них.</p>
+      <p className="mt-3 text-xs text-muted">Кілограми в Донесенні ведуться окремо від літрів: початок вводиться на екрані «Залишки на початок», «Прибуло» береться з надходжень.</p>
       {preview && (
         <div className="fixed inset-0 z-10 flex flex-col bg-ink/60 p-3 sm:p-4" role="dialog" aria-modal="true" aria-label={preview}>
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-t-lg bg-surface px-4 py-2.5">
