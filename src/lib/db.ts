@@ -1,11 +1,12 @@
 import { buildVehicleFuelRows, nextOpenings, vehicleOdometers } from './calc/index.ts'
+import { monthName } from './months.ts'
 import { supabase } from './supabase.ts'
 
 
 export interface FuelType { id: string; name: string; kind: 'fuel' | 'lubricant'; sort: number }
 export interface Vehicle { id: string; seq: number; name: string; vehicle_type: string | null; military_number: string | null; unit: string; is_generator: boolean }
 export interface VehicleFuel { vehicle_id: string; fuel_type_id: string }
-export interface Period { id: string; date_from: string; date_to: string; label: string | null; status: 'draft' | 'closed' }
+export interface Period { id: string; date_from: string; date_to: string; label: string | null; report_year: number; report_month: number; status: 'draft' | 'closed' }
 export interface ReceiptRow { id: string; period_id: string; fuel_type_id: string; liters: number; kg: number | null; doc_ref: string | null }
 export interface WaybillRow {
   id: string; period_id: string; vehicle_id: string; fuel_type_id: string; number: string | null
@@ -29,7 +30,7 @@ export async function loadRefs() {
 }
 
 export const listPeriods = async () =>
-  unwrap<Period[]>(await supabase.from('periods').select('*').order('date_from', { ascending: false }))
+  unwrap<Period[]>(await supabase.from('periods').select('*').order('report_year', { ascending: false }).order('report_month', { ascending: false }))
 
 export const getPeriod = async (id: string) =>
   unwrap<Period>(await supabase.from('periods').select('*').eq('id', id).single())
@@ -58,9 +59,11 @@ export const deleteRow = async (table: 'supplier_receipts' | 'waybills', id: str
 export const saveBalance = async (b: BalanceRow) =>
   unwrap(await supabase.from('period_balances').upsert(b).select())
 
-/** Створює період; початкові залишки беруться із закритих залишків найближчого попереднього періоду. */
-export async function createPeriod(dateFrom: string, dateTo: string, label: string) {
-  const period = unwrap<Period[]>(await supabase.from('periods').insert({ date_from: dateFrom, date_to: dateTo, label: label || null }).select())[0]
+/** Створює звіт за місяць; початкові залишки й спідометр беруться з найближчого попереднього звіту. */
+export async function createPeriod(year: number, month: number, dateFrom: string, dateTo: string) {
+  const period = unwrap<Period[]>(
+    await supabase.from('periods').insert({ date_from: dateFrom, date_to: dateTo, label: monthName(month), report_year: year, report_month: month }).select(),
+  )[0]
   const prev = unwrap<Period[]>(
     await supabase.from('periods').select('*').lt('date_from', dateFrom).neq('id', period.id).order('date_from', { ascending: false }).limit(1),
   )[0]

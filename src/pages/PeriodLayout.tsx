@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation, useParams } from 'react-router'
 import { fmtDate } from '../components/ui.tsx'
+import { monthName } from '../lib/months.ts'
 import { useAsync } from '../hooks/useAsync.ts'
 import { getPeriod, listReceipts, listWaybills } from '../lib/db.ts'
 
@@ -21,8 +22,8 @@ export default function PeriodLayout() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="font-mono text-xl font-medium tabular-nums">{fmtDate(data.date_from)} – {fmtDate(data.date_to)}</h1>
-        {data.label && <p className="text-sm text-muted">{data.label}</p>}
+        <h1 className="text-xl font-bold">{monthName(data.report_month).charAt(0).toUpperCase() + monthName(data.report_month).slice(1)} {data.report_year}</h1>
+        <p className="font-mono text-sm tabular-nums text-muted">{fmtDate(data.date_from)} – {fmtDate(data.date_to)}</p>
       </div>
       <nav aria-label="Кроки періоду" className="flex gap-1 overflow-x-auto border-b border-line">
         {steps.map(([to, label, count], i) => (
