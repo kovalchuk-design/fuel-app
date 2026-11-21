@@ -65,12 +65,12 @@ export async function renderPdf(m: DocModel, fonts: PdfFonts): Promise<Blob> {
     const hs = m.header.map(() => LH + 2 * PAD)
     for (const p of placed) {
       const w = xs[p.col + p.colSpan] - xs[p.col]
-      const need = cellLines(p.cell, w, true).length * LH + 2 * PAD
+      const need = cellLines(p.cell, w, p.cell.bold !== false).length * LH + 2 * PAD
       if (p.rowSpan === 1) hs[p.row] = Math.max(hs[p.row], need)
     }
     for (const p of placed) {
       const w = xs[p.col + p.colSpan] - xs[p.col]
-      const need = cellLines(p.cell, w, true).length * LH + 2 * PAD
+      const need = cellLines(p.cell, w, p.cell.bold !== false).length * LH + 2 * PAD
       const have = hs.slice(p.row, p.row + p.rowSpan).reduce((a, b) => a + b, 0)
       if (need > have) hs[p.row + p.rowSpan - 1] += need - have
     }
@@ -81,10 +81,12 @@ export async function renderPdf(m: DocModel, fonts: PdfFonts): Promise<Blob> {
       const x0 = ML + xs[p.col], w = xs[p.col + p.colSpan] - xs[p.col]
       const top = tops[p.row], h = tops[p.row] - tops[p.row + p.rowSpan]
       page.drawRectangle({ x: x0, y: top - h, width: w, height: h, borderColor: black, borderWidth: 0.6 })
-      const lines = cellLines(p.cell, w, true)
+      const hbold = p.cell.bold !== false
+      const hfont = hbold ? bold : reg
+      const lines = cellLines(p.cell, w, hbold)
       let ty = top - (h - lines.length * LH) / 2 - SIZE
       for (const ln of lines) {
-        page.drawText(ln, { x: x0 + textX('center', 0, w, bold.widthOfTextAtSize(ln, SIZE)), y: ty, size: SIZE, font: bold, color: black })
+        page.drawText(ln, { x: x0 + textX('center', 0, w, hfont.widthOfTextAtSize(ln, SIZE)), y: ty, size: SIZE, font: hfont, color: black })
         ty -= LH
       }
     }

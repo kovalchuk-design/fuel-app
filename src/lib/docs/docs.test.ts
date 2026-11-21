@@ -228,3 +228,17 @@ describe('правило: машина показує всі види пальн
     expect([d[3], d[4], d[7], d[8]]).toEqual(['281', '865', '805', '341'])
   })
 })
+
+describe('рядок з номерами колонок під заголовком', () => {
+  for (const [name, build] of [['Розшифровка', buildRaspiska], ['Відомість', buildVidomist], ['Донесення', buildDonesennya]] as const) {
+    it(`${name}: останній рядок заголовка — 1…N по числу колонок, по центру, не жирним`, () => {
+      const m = build(inp)
+      const last = m.header[m.header.length - 1]
+      expect(last.map((c) => c.text)).toEqual(Array.from({ length: m.colWidths.length }, (_, i) => String(i + 1)))
+      expect(last.every((c) => c.align === 'center' && c.bold === false)).toBe(true)
+    })
+  }
+  it('Відомість: 11 колонок пронумеровано 1–11 (як у вихідній формі)', () => {
+    expect(buildVidomist(inp).colWidths).toHaveLength(11)
+  })
+})

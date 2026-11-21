@@ -49,7 +49,7 @@ export async function renderXlsx(m: DocModel): Promise<Blob> {
       if (p.rowSpan > 1 || p.colSpan > 1) ws.mergeCells(top, left, top + p.rowSpan - 1, left + p.colSpan - 1)
       const c = ws.getCell(top, left)
       c.value = header ? p.cell.text : (/^-?\d+(,\d+)?$/.test(p.cell.text) && !p.cell.text.startsWith('0') && left > 3 ? Number(p.cell.text.replace(',', '.')) : p.cell.text)
-      c.font = { name: FONT, size: 9, bold: header || !!p.cell.bold }
+      c.font = { name: FONT, size: 9, bold: header ? p.cell.bold !== false : !!p.cell.bold }
       c.alignment = { horizontal: header ? 'center' : (p.cell.align ?? m.bodyAlign[p.col]), vertical: 'middle', wrapText: true }
     }
     const end = start + rows.length - 1

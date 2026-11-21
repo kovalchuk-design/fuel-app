@@ -34,7 +34,7 @@ export async function renderDocx(m: DocModel): Promise<Blob> {
               alignment: jc(header ? 'center' : (p.cell.align ?? m.bodyAlign[p.col])),
               // Одинарний інтервал без відступів: заголовок не «розтягується» на всю висоту клітинки.
               spacing: { before: 0, after: 0, line: 210, lineRule: D.LineRuleType.EXACT },
-              children: [run(p.cell.text, 9, header || !!p.cell.bold)],
+              children: [run(p.cell.text, 9, header ? p.cell.bold !== false : !!p.cell.bold)],
             })],
           })
         }),
