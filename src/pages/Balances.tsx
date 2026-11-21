@@ -15,9 +15,9 @@ export default function Balances() {
     <Card title="Залишки пального в баках на початок періоду, л">
       {error && <ErrorText>{error}</ErrorText>}
       <Scroll>
-        <table className={tbl}>
+        <table className={`${tbl} min-w-[44rem]`}>
           <thead>
-            <tr><th className={`${th} w-12`}>№</th><th className={th}>Техніка</th><th className={th}>Пальне</th><th className={`${thR} w-36`}>Залишок, л</th></tr>
+            <tr><th className={`${th} w-12`}>№</th><th className={`${th} w-64`}>Техніка</th><th className={`${th} w-64`}>Пальне</th><th className={`${thR} w-36`}>Залишок, л</th><th className={th} /></tr>
           </thead>
           <tbody>
             {vehicles.flatMap((v, vi) =>
@@ -42,6 +42,7 @@ export default function Balances() {
                         }}
                       />
                     </td>
+                    <td />
                   </tr>
                 )
               }),
