@@ -119,3 +119,15 @@ from (values
 join public.periods p on p.report_year = 2026 and p.report_month = 10
 join public.vehicles v on v.seq = x.seq
 join public.fuel_types f on f.name = x.fuel;
+
+-- Початок жовтня 2026 у кг (вихідне Донесення, колонка «Становить на 25.09.2026», рядки «кг»).
+insert into public.period_fuel_kg (period_id, fuel_type_id, kg_open)
+select p.id, f.id, x.kg
+from (values
+  ('А-80 ДЗ', 118), ('А-80', 22), ('А-92 Євро 5 Е0', 4), ('А-95 Євро 5 Е0', 35),
+  ('ДП-З Євро 5 В5', 1483), ('ДП-Л Євро 5 В5', 169), ('ДП-Л Євро 5 В0', 1279),
+  ('ДП-Л Євро 5 В0 (ДТ.Е К5 сорт Е)', 434)
+) as x(fuel, kg)
+join public.periods p on p.report_year = 2026 and p.report_month = 10
+join public.fuel_types f on f.name = x.fuel
+on conflict (period_id, fuel_type_id) do update set kg_open = excluded.kg_open;

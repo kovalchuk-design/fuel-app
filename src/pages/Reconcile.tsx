@@ -4,14 +4,14 @@ import DocumentsPanel from '../components/DocumentsPanel.tsx'
 import { Card, ErrorText, fmt, num, Scroll, tbl, td, th, thR } from '../components/ui.tsx'
 import { useAsync } from '../hooks/useAsync.ts'
 import { aggregateByFuel, buildVehicleFuelRows, reconcileReceipts, validatePeriod, vehicleOdometers } from '../lib/calc/index.ts'
-import { getPeriod, getSettings, listBalances, listPeriodVehicles, listReceipts, listWaybills } from '../lib/db.ts'
+import { getPeriod, getSettings, listBalances, listFuelKg, listPeriodVehicles, listReceipts, listWaybills } from '../lib/db.ts'
 
 export default function Reconcile() {
   const { id = '' } = useParams()
   const { vehicles, fuels, vehicleFuels } = useRefs()
   const { data, error } = useAsync(async () => {
-    const [bal, rec, wb, period, settings, pv] = await Promise.all([listBalances(id), listReceipts(id), listWaybills(id), getPeriod(id), getSettings(), listPeriodVehicles(id)])
-    return { bal, rec, wb, period, settings, pv }
+    const [bal, rec, wb, period, settings, pv, fuelKg] = await Promise.all([listBalances(id), listReceipts(id), listWaybills(id), getPeriod(id), getSettings(), listPeriodVehicles(id), listFuelKg(id)])
+    return { bal, rec, wb, period, settings, pv, fuelKg }
   }, [id])
   if (error) return <ErrorText>{error}</ErrorText>
   if (!data) return <p className="text-muted">Завантаження…</p>
@@ -50,7 +50,7 @@ export default function Reconcile() {
 
       <DocumentsPanel
         blocked={issues.length > 0 || rows.length === 0}
-        input={{ period: data.period, vehicles, fuels, vehicleFuels, balances: data.bal, periodVehicles: data.pv, receipts: data.rec, waybills: data.wb, settings: data.settings }}
+        input={{ period: data.period, vehicles, fuels, vehicleFuels, balances: data.bal, periodVehicles: data.pv, fuelKg: data.fuelKg, receipts: data.rec, waybills: data.wb, settings: data.settings }}
       />
 
       <Card title="Звірка надходжень">

@@ -32,6 +32,9 @@ const ODO: Record<number, [number, number]> = {
   16: [341530, 343636], 17: [2293, 2621],
 }
 
+/** Залишок у кг на початок (колонка «Становить на 25.09.2026» вихідного Донесення). */
+const KG_OPEN: Record<string, number> = { [A80DZ]: 118, [A80]: 22, [A92]: 4, [A95]: 35, [DPZ]: 1483, [DPL5]: 169, [DPL0]: 1279, [DPE]: 434 }
+
 export function octoberFixture(): ReportInput {
   const vid = (s: number) => `v${s}`
   const vehicles = VEHICLES.map(([seq, name, vehicle_type, military_number, is_generator]) => ({ id: vid(seq), seq, name, vehicle_type, military_number, unit: 'ВМЗ', is_generator }))
@@ -44,12 +47,13 @@ export function octoberFixture(): ReportInput {
     id: `w${i}`, period_id: 'p', vehicle_id: vid(s), fuel_type_id: f, number: String(500 + s), liters_used: u, liters_received: r,
     odometer_start: ODO[s]?.[0] ?? null, odometer_end: ODO[s]?.[1] ?? null,
   }))
-  const receipts = [[A80DZ, 290, 216], [A95, 160, 122], [DPL5, 865, 727], [DPL0, 297, null]].map(([f, l, kg], i) => ({
+  const receipts = [[A80DZ, 290, 216], [A95, 160, 122], [DPL5, 865, 727], [DPL0, 297, 249]].map(([f, l, kg], i) => ({
     id: `r${i}`, period_id: 'p', fuel_type_id: f as string, liters: l as number, kg: kg as number | null, doc_ref: null,
   }))
   return {
     period: { id: 'p', date_from: '2026-09-25', date_to: '2026-10-25', label: 'жовтень', report_year: 2026, report_month: 10, status: 'draft' },
     vehicles, fuels, vehicleFuels, balances, receipts, waybills,
+    fuelKg: Object.entries(KG_OPEN).map(([f, kg]) => ({ period_id: 'p', fuel_type_id: f, kg_open: kg })),
     periodVehicles: Object.entries(ODO).map(([s, [open]]) => ({ period_id: 'p', vehicle_id: vid(Number(s)), odometer_open: open })),
     settings: {
       unit_code: 'А1446', supplier_unit_code: 'А4240',

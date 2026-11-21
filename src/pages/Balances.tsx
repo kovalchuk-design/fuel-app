@@ -2,7 +2,7 @@ import { useParams } from 'react-router'
 import { useRefs } from '../auth/Refs.tsx'
 import { Card, ErrorText, fmt, inputCls, Scroll, tbl, td, th, thR } from '../components/ui.tsx'
 import { useAsync } from '../hooks/useAsync.ts'
-import { listBalances, listPeriodVehicles, saveBalance, saveOdometerOpen } from '../lib/db.ts'
+import { listBalances, listFuelKg, listPeriodVehicles, saveBalance, saveFuelKg, saveOdometerOpen } from '../lib/db.ts'
 
 /** Залишки на початок періоду: для першого періоду вводяться вручну, далі переносяться автоматично. */
 export default function Balances() {
@@ -10,6 +10,7 @@ export default function Balances() {
   const { vehicles, fuels, vehicleFuels } = useRefs()
   const { data, error, reload } = useAsync(() => listBalances(id), [id])
   const odo = useAsync(() => listPeriodVehicles(id), [id])
+  const kg = useAsync(() => listFuelKg(id), [id])
   const get = (v: string, f: string) => data?.find((b) => b.vehicle_id === v && b.fuel_type_id === f)
 
   return (
@@ -77,6 +78,41 @@ export default function Balances() {
                         if (val === (cur?.odometer_open ?? null)) return
                         await saveOdometerOpen({ period_id: id, vehicle_id: v.id, odometer_open: val })
                         await odo.reload()
+                      }}
+                    />
+                  </td>
+                  <td />
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </Scroll>
+    </Card>
+
+    <Card title="Залишок у кілограмах на початок періоду (для Донесення)">
+      {kg.error && <ErrorText>{kg.error}</ErrorText>}
+      <p className="mb-3 text-sm text-muted">Кілограми ведуться окремо від літрів. Для пального, де був рух, кг на початок введіть вручну.</p>
+      <Scroll>
+        <table className={`${tbl} min-w-[30rem]`}>
+          <thead><tr><th className={`${th} w-80`}>Пальне</th><th className={`${thR} w-36`}>Залишок, кг</th><th className={th} /></tr></thead>
+          <tbody>
+            {fuels.filter((f) => f.kind === 'fuel').map((f, i) => {
+              const cur = kg.data?.find((x) => x.fuel_type_id === f.id)
+              return (
+                <tr key={f.id} className={`${i % 2 === 1 ? 'bg-stripe' : 'bg-surface'} border-t border-line`}>
+                  <td className={`${td} font-semibold`}>{f.name}</td>
+                  <td className="px-2.5 py-1 text-right">
+                    <input
+                      key={(cur?.kg_open ?? '') + '-' + (kg.data?.length ?? 0)}
+                      aria-label={`Залишок у кг на початок: ${f.name}`}
+                      type="number" step="0.01" min="0" className={`${inputCls} h-8 w-32 text-right font-mono tabular-nums`}
+                      defaultValue={cur?.kg_open ?? ''}
+                      onBlur={async (e) => {
+                        const val = e.target.value === '' ? null : Number(e.target.value)
+                        if (val === (cur?.kg_open ?? null)) return
+                        await saveFuelKg({ period_id: id, fuel_type_id: f.id, kg_open: val })
+                        await kg.reload()
                       }}
                     />
                   </td>

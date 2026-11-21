@@ -13,6 +13,7 @@ export interface WaybillRow {
   liters_used: number; liters_received: number; odometer_start: number | null; odometer_end: number | null
 }
 export interface PeriodVehicle { period_id: string; vehicle_id: string; odometer_open: number | null }
+export interface PeriodFuelKg { period_id: string; fuel_type_id: string; kg_open: number | null }
 export interface BalanceRow { period_id: string; vehicle_id: string; fuel_type_id: string; opening: number; measured_closing: number | null }
 
 function unwrap<T>(res: { data: T | null; error: { message: string } | null }): T {
@@ -50,6 +51,12 @@ export const listPeriodVehicles = async (periodId: string) =>
 export const saveOdometerOpen = async (row: PeriodVehicle) =>
   unwrap(await supabase.from('period_vehicles').upsert(row).select())
 
+export const listFuelKg = async (periodId: string) =>
+  unwrap<PeriodFuelKg[]>(await supabase.from('period_fuel_kg').select('*').eq('period_id', periodId))
+
+export const saveFuelKg = async (row: PeriodFuelKg) =>
+  unwrap(await supabase.from('period_fuel_kg').upsert(row).select())
+
 export const insertRow = async (table: 'supplier_receipts' | 'waybills', row: Record<string, unknown>) =>
   unwrap(await supabase.from(table).insert(row).select())
 
@@ -85,6 +92,14 @@ export async function createPeriod(year: number, month: number, dateFrom: string
     for (const w of wb) if (!pv.some((x) => x.vehicle_id === w.vehicle_id) && !carried.some((c) => c.vehicle_id === w.vehicle_id))
       carried.push({ period_id: period.id, vehicle_id: w.vehicle_id, odometer_open: odo(w.vehicle_id).end })
     if (carried.length) unwrap(await supabase.from('period_vehicles').insert(carried).select())
+    // Кг на початок: переносяться лише для пального без руху за період (тоді залишок у кг не змінився);
+    // де був рух, кг на кінець невідомі, і їх вводять вручну.
+    const kg = await listFuelKg(prev.id)
+    const moved = new Set<string>()
+    for (const w of wb) if (w.liters_received || w.liters_used) moved.add(w.fuel_type_id)
+    const kgCarried = kg.filter((k) => k.kg_open != null && !moved.has(k.fuel_type_id))
+      .map((k) => ({ period_id: period.id, fuel_type_id: k.fuel_type_id, kg_open: k.kg_open }))
+    if (kgCarried.length) unwrap(await supabase.from('period_fuel_kg').insert(kgCarried).select())
   }
   return period
 }
