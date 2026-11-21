@@ -246,3 +246,65 @@ describe('рядок з номерами колонок під заголовк�
     expect(buildVidomist(inp).colWidths).toHaveLength(11)
   })
 })
+
+describe('Відомість: секції за видом пального з підсумками під кожною', () => {
+  const m = buildVidomist(inp)
+  const g = grid(m)
+  const names = () => g.map((r) => r[2]).filter((x, i, a) => x !== 'ВСЬОГО' && x !== '' && a.indexOf(x) === i)
+  it('порядок машин: спершу А-80 (ЗІЛ, УАЗ, ГАЗ 66), потім А-95/А-92 (ГАЗ 32213, Фольцваген), потім дизель', () => {
+    expect(names().slice(0, 6)).toEqual(['ЗІЛ ММЗ', 'УАЗ 3962', 'ГАЗ 66 (АП2)', 'ГАЗ 32213', 'Фольцваген', 'М-508'])
+  })
+  it('№ з/п йдуть підряд по секціях: 1…22', () => {
+    const nums = placeCells(m.body, m.colWidths.length).filter((p) => p.col === 0 && p.cell.text !== '').map((p) => p.cell.text)
+    expect(nums).toEqual(Array.from({ length: 22 }, (_, i) => String(i + 1)))
+  })
+  it('підсумки: А-80, А-80 ДЗ — одразу після ГАЗ 66, перед ГАЗ 32213', () => {
+    const idx = (pred: (r: string[]) => boolean) => g.findIndex(pred)
+    const lastGaz66 = g.map((r, i) => (r[2] === 'ГАЗ 66 (АП2)' ? i : -1)).filter((i) => i >= 0).pop()!
+    const tA80 = idx((r) => r[2] === 'ВСЬОГО' && r[1] === 'А-80')
+    const tDz = idx((r) => r[2] === 'ВСЬОГО' && r[1] === 'А-80 ДЗ')
+    const firstGaz32 = idx((r) => r[2] === 'ГАЗ 32213')
+    expect(tA80).toBe(lastGaz66 + 1)
+    expect(tDz).toBe(lastGaz66 + 2)
+    expect(firstGaz32).toBe(tDz + 1)
+  })
+  it('підсумки А-95 і А-92 (у цьому порядку) — після Фольцвагена, перед дизелем', () => {
+    const t95 = g.findIndex((r) => r[2] === 'ВСЬОГО' && r[1] === 'А-95 Євро 5 Е0')
+    const t92 = g.findIndex((r) => r[2] === 'ВСЬОГО' && r[1] === 'А-92 Євро 5 Е0')
+    const lastVw = g.map((r, i) => (r[2] === 'Фольцваген' ? i : -1)).filter((i) => i >= 0).pop()!
+    expect(t95).toBe(lastVw + 1)
+    expect(t92).toBe(t95 + 1)
+    expect(g.findIndex((r) => r[2] === 'М-508')).toBe(t92 + 1)
+  })
+  it('підсумки дизелю — в кінці, суми збігаються з Донесенням (В5 341, В0 1234, ДТ.Е 516,7)', () => {
+    const totals = g.filter((r) => r[2] === 'ВСЬОГО')
+    expect(totals.map((r) => r[1])).toEqual([
+      'А-80', 'А-80 ДЗ', 'А-95 Євро 5 Е0', 'А-92 Євро 5 Е0',
+      'ДП-З Євро 5 В5', 'ДП-Л Євро 5 В5', 'ДП-Л Євро 5 В0', 'ДП-Л Євро 5 В0 (ДТ.Е К5 сорт Е)', 'ДП-Артика Євро 5 В0',
+    ])
+    const by = (n: string) => totals.find((r) => r[1] === n)!
+    expect([by('А-80 ДЗ')[6], by('А-80 ДЗ')[7]]).toEqual(['115', '115'])
+    expect(by('А-95 Євро 5 Е0')[6]).toBe('79')
+    expect(by('А-92 Євро 5 Е0')[6]).toBe('5')
+    expect(by('ДП-Л Євро 5 В5')[6]).toBe('341')
+    expect(by('ДП-Л Євро 5 В0')[6]).toBe('1234')
+    expect(by('ДП-Л Євро 5 В0 (ДТ.Е К5 сорт Е)')[6]).toBe('516,7')
+    // діагональ: останній рядок таблиці — підсумок дизелю
+    expect(g[g.length - 1][2]).toBe('ВСЬОГО')
+  })
+  it('мастила у відомість не потрапляють', () => {
+    const withOil = {
+      ...inp,
+      fuels: [...inp.fuels, { id: 'oil', name: 'Масло М6з10В', kind: 'lubricant' as const, category: 'lubricant' as const, sort: 15 }],
+      vehicleFuels: [...inp.vehicleFuels, { vehicle_id: inp.vehicles.find((v) => v.seq === 5)!.id, fuel_type_id: 'oil', position: 1 }],
+    }
+    expect(grid(buildVidomist(withOil)).flat().some((t) => t.includes('Масло'))).toBe(false)
+  })
+  it('рух за межами секції машини не губиться (А-92 у «А-80» машини з даними)', () => {
+    const zil = inp.vehicles.find((v) => v.seq === 3)!
+    const moved = { ...inp, balances: [...inp.balances, { period_id: 'p', vehicle_id: zil.id, fuel_type_id: 'А-92 Євро 5 Е0', opening: 10, measured_closing: null }] }
+    const gg = grid(buildVidomist(moved))
+    const total92 = gg.find((r) => r[2] === 'ВСЬОГО' && r[1] === 'А-92 Євро 5 Е0')!
+    expect(total92[6]).toBe('15') // 5 (ГАЗ 32213) + 10 (ЗІЛ)
+  })
+})

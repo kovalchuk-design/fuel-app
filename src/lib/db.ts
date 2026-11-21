@@ -4,7 +4,7 @@ import { supabase } from './supabase.ts'
 
 
 export interface FuelType { id: string; name: string; kind: 'fuel' | 'lubricant'; category: 'petrol' | 'diesel' | 'lubricant'; sort: number }
-export interface Vehicle { id: string; seq: number; name: string; vehicle_type: string | null; military_number: string | null; unit: string; is_generator: boolean; fuel_class: 'petrol' | 'diesel' }
+export interface Vehicle { id: string; seq: number; name: string; vehicle_type: string | null; military_number: string | null; unit: string; is_generator: boolean; fuel_class: 'petrol' | 'diesel'; report_group: 'a80' | 'a92_95' | 'diesel' }
 export interface VehicleFuel { vehicle_id: string; fuel_type_id: string; position: number }
 export interface Period { id: string; date_from: string; date_to: string; label: string | null; report_year: number; report_month: number; status: 'draft' | 'closed' }
 export interface ReceiptRow { id: string; period_id: string; fuel_type_id: string; liters: number; kg: number | null; doc_ref: string | null }
