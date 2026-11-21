@@ -124,7 +124,7 @@ export function buildRaspiska(inp: ReportInput): DocModel {
       [h('Початок місяця'), h('Кінець місяця')],
     ],
     body,
-    bodyAlign: ['center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center'],
+    bodyAlign: ['center', 'center', 'center', 'center', 'center', 'left', 'center', 'center', 'center', 'center', 'center', 'center', 'center'],
     after: [],
     signatures: sig(inp.settings.signatories.logistics),
   }
@@ -193,7 +193,7 @@ export function buildVidomist(inp: ReportInput): DocModel {
         h('Надлишок, літрів'), h('Невистачає, літрів'), h('Примітка (спідометр)')],
     ],
     body,
-    bodyAlign: ['center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center'],
+    bodyAlign: ['center', 'left', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center'],
     after: [],
     signatures: sig(inp.settings.signatories.logistics),
   }
@@ -252,7 +252,7 @@ export function buildDonesennya(inp: ReportInput): DocModel {
       [h('По шляхових листах'), h('По робочих листах агрегатів'), h('Усього')],
     ],
     body,
-    bodyAlign: ['center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center'],
+    bodyAlign: ['center', 'left', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center'],
     after: [
       { text: `Контрольне число: ${no} (порядкових номерів)`, align: 'left', size: 9, bold: true },
       { text: `Пояснення: ${inp.settings.explanation ?? ''}`, align: 'left', size: 9 },
