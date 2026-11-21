@@ -3,7 +3,7 @@ import { supabase } from './supabase.ts'
 
 
 export interface FuelType { id: string; name: string; kind: 'fuel' | 'lubricant'; sort: number }
-export interface Vehicle { id: string; seq: number; name: string; vehicle_type: string | null; military_number: string | null; is_generator: boolean }
+export interface Vehicle { id: string; seq: number; name: string; vehicle_type: string | null; military_number: string | null; unit: string; is_generator: boolean }
 export interface VehicleFuel { vehicle_id: string; fuel_type_id: string }
 export interface Period { id: string; date_from: string; date_to: string; label: string | null; status: 'draft' | 'closed' }
 export interface ReceiptRow { id: string; period_id: string; fuel_type_id: string; liters: number; kg: number | null; doc_ref: string | null }
@@ -68,3 +68,13 @@ export async function createPeriod(dateFrom: string, dateTo: string, label: stri
   }
   return period
 }
+
+export interface SettingsRow {
+  unit_code: string
+  supplier_unit_code: string
+  explanation: string | null
+  signatories: Record<string, { title: string; rank: string; name: string }>
+}
+
+export const getSettings = async () =>
+  unwrap<SettingsRow>(await supabase.from('document_settings').select('*').eq('id', 1).single())

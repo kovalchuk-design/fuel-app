@@ -1,16 +1,17 @@
 import { useParams } from 'react-router'
 import { useRefs } from '../auth/Refs.tsx'
-import { Button, Card, ErrorText, fmt } from '../components/ui.tsx'
+import DocumentsPanel from '../components/DocumentsPanel.tsx'
+import { Card, ErrorText, fmt } from '../components/ui.tsx'
 import { useAsync } from '../hooks/useAsync.ts'
 import { aggregateByFuel, buildVehicleFuelRows, reconcileReceipts, validatePeriod } from '../lib/calc/index.ts'
-import { listBalances, listReceipts, listWaybills } from '../lib/db.ts'
+import { getPeriod, getSettings, listBalances, listReceipts, listWaybills } from '../lib/db.ts'
 
 export default function Reconcile() {
   const { id = '' } = useParams()
-  const { vehicles, fuels } = useRefs()
+  const { vehicles, fuels, vehicleFuels } = useRefs()
   const { data, error } = useAsync(async () => {
-    const [bal, rec, wb] = await Promise.all([listBalances(id), listReceipts(id), listWaybills(id)])
-    return { bal, rec, wb }
+    const [bal, rec, wb, period, settings] = await Promise.all([listBalances(id), listReceipts(id), listWaybills(id), getPeriod(id), getSettings()])
+    return { bal, rec, wb, period, settings }
   }, [id])
   if (error) return <ErrorText>{error}</ErrorText>
   if (!data) return <p className="text-slate-500">Завантаження…</p>
@@ -48,11 +49,12 @@ export default function Reconcile() {
             {issues.map((i, k) => <li key={k}>{[i.vehicleId && vname(i.vehicleId), i.fuelTypeId && fname(i.fuelTypeId), i.message].filter(Boolean).join(' · ')}</li>)}
           </ul>
         )}
-        <div className="mt-4 flex items-center gap-3">
-          <Button disabled={issues.length > 0 || rows.length === 0}>Згенерувати документи</Button>
-          <span className="text-xs text-slate-500">{issues.length > 0 ? 'Усуньте розбіжності, щоб згенерувати документи.' : 'Генерація документів — наступний етап.'}</span>
-        </div>
       </Card>
+
+      <DocumentsPanel
+        blocked={issues.length > 0 || rows.length === 0}
+        input={{ period: data.period, vehicles, fuels, vehicleFuels, balances: data.bal, receipts: data.rec, waybills: data.wb, settings: data.settings }}
+      />
 
       <Card title="Зведення по видах пального (Донесення), л">
         <table className="w-full text-sm">
