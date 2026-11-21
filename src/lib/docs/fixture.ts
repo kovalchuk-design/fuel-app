@@ -39,9 +39,7 @@ export function octoberFixture(): ReportInput {
   const vehicleFuels = ROWS.map(([s, f]) => ({ vehicle_id: vid(s), fuel_type_id: f }))
   const balances = ROWS.map(([s, f, o]) => ({ period_id: 'p', vehicle_id: vid(s), fuel_type_id: f, opening: o, measured_closing: null }))
   const withUse = ROWS.filter(([, , , r, u]) => r || u)
-  // машини без заправок за місяць: нульовий лист лише для фіксації спідометра
-  const idle = Object.keys(ODO).map(Number).filter((s) => !withUse.some((x) => x[0] === s)).map((s) => ROWS.find((x) => x[0] === s)!)
-  const waybills = [...withUse, ...idle].map(([s, f, , r, u], i) => ({
+  const waybills = withUse.map(([s, f, , r, u], i) => ({
     id: `w${i}`, period_id: 'p', vehicle_id: vid(s), fuel_type_id: f, number: String(500 + s), liters_used: u, liters_received: r,
     odometer_start: ODO[s]?.[0] ?? null, odometer_end: ODO[s]?.[1] ?? null,
   }))
@@ -51,6 +49,7 @@ export function octoberFixture(): ReportInput {
   return {
     period: { id: 'p', date_from: '2026-09-25', date_to: '2026-10-25', label: 'жовтень', status: 'draft' },
     vehicles, fuels, vehicleFuels, balances, receipts, waybills,
+    periodVehicles: Object.entries(ODO).map(([s, [open]]) => ({ period_id: 'p', vehicle_id: vid(Number(s)), odometer_open: open })),
     settings: {
       unit_code: 'А1446', supplier_unit_code: 'А4240',
       explanation: 'Пально-мастильні матеріали: по графі №7 отримані зі складу пального військової частини А4240 по роздавальним відомостям. Фактична витрата відповідає встановленим нормам. Економії, перевитрати пально-мастильних матеріалів не має.',

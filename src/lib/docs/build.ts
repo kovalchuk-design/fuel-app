@@ -1,5 +1,5 @@
-import { aggregateByFuel, buildVehicleFuelRows, round2, type VehicleFuelRow } from '../calc/index.ts'
-import type { BalanceRow, FuelType, Period, ReceiptRow, Vehicle, VehicleFuel, WaybillRow } from '../db.ts'
+import { aggregateByFuel, buildVehicleFuelRows, round2, vehicleOdometers, type VehicleFuelRow } from '../calc/index.ts'
+import type { BalanceRow, FuelType, Period, PeriodVehicle, ReceiptRow, Vehicle, VehicleFuel, WaybillRow } from '../db.ts'
 import { cell, type DCell, type DocModel, type Signature } from './model.ts'
 
 export interface SignatoryDef { title: string; rank: string; name: string }
@@ -15,6 +15,7 @@ export interface ReportInput {
   fuels: FuelType[]
   vehicleFuels: VehicleFuel[]
   balances: BalanceRow[]
+  periodVehicles: PeriodVehicle[]
   receipts: ReceiptRow[]
   waybills: WaybillRow[]
   settings: DocSettings
@@ -62,16 +63,12 @@ function orderedRows(inp: ReportInput, rows: VehicleFuelRow[]): VehicleFuelRow[]
   return out
 }
 
-/** Спідометр належить машині, а не пальному: мін. початок і макс. кінець по всіх її шляхових листах. */
+/** Спідометр належить машині: початок із періоду (або мін. із листів), кінець — макс. із листів. */
 function odometers(inp: ReportInput): (vehicleId: string) => { start: number | null; end: number | null } {
-  const m = new Map<string, { start: number | null; end: number | null }>()
-  for (const w of inp.waybills) {
-    const o = m.get(w.vehicle_id) ?? { start: null, end: null }
-    if (w.odometer_start != null) o.start = o.start == null ? w.odometer_start : Math.min(o.start, w.odometer_start)
-    if (w.odometer_end != null) o.end = o.end == null ? w.odometer_end : Math.max(o.end, w.odometer_end)
-    m.set(w.vehicle_id, o)
-  }
-  return (id) => m.get(id) ?? { start: null, end: null }
+  return vehicleOdometers(
+    new Map(inp.periodVehicles.map((x) => [x.vehicle_id, x.odometer_open])),
+    inp.waybills.map((w) => ({ vehicleId: w.vehicle_id, odometerStart: w.odometer_start, odometerEnd: w.odometer_end })),
+  )
 }
 
 const sig = (s: SignatoryDef | undefined, heading?: string): Signature[] => (s ? [{ heading, ...s }] : [])
