@@ -134,8 +134,12 @@ describe('об’єднані клітинки і вирівнювання по 
     expect(placeCells(m.header, m.colWidths.length).some((p) => p.cell.text === 'Підрозділ')).toBe(false)
     expect(m.colWidths).toHaveLength(11)
   })
-  it('усе тіло таблиць вирівняно по центру (як в оригіналі)', () => {
-    for (const m of [buildRaspiska(inp), buildVidomist(inp), buildDonesennya(inp)]) expect(m.bodyAlign.every((a) => a === 'center')).toBe(true)
+  it('тіло таблиць по центру, крім колонки з назвою пального (по лівому краю)', () => {
+    const fuelHeaders = ['Марка ПММ', 'Найменування пального', 'Найменування військового майна']
+    for (const m of [buildRaspiska(inp), buildVidomist(inp), buildDonesennya(inp)]) {
+      const fuelCol = placeCells(m.header, m.colWidths.length).find((p) => fuelHeaders.includes(p.cell.text))!.col
+      m.bodyAlign.forEach((a, i) => expect(a, `${m.id}, колонка ${i + 1}`).toBe(i === fuelCol ? 'left' : 'center'))
+    }
   })
 })
 
