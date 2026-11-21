@@ -54,8 +54,8 @@ describe('Розшифровка / Відомість', () => {
   it('Богдан: пробіг у Відомості — кінець спідометра 59900; Розшифровка: 15+185−167=33', () => {
     const r = grid(buildRaspiska(inp)).find((x) => x[1] === 'Богдан 2251')!
     expect(r.slice(3, 11)).toEqual(['58602', '59900', 'ДП-Л Євро 5 В5', '15', '185', '167', '167', '33'])
-    const v = grid(buildVidomist(inp)).find((x) => x[3] === 'Богдан 2251')!
-    expect(v[11]).toBe('59900')
+    const v = grid(buildVidomist(inp)).find((x) => x[2] === 'Богдан 2251')!
+    expect(v[10]).toBe('59900')
   })
   it('сітка не виходить за межі колонок', () => {
     for (const m of [buildRaspiska(inp), buildVidomist(inp), buildDonesennya(inp)]) {
@@ -106,7 +106,7 @@ describe('нульові рядки пального показуються (д�
     expect(of('Фольцваген')).toEqual([['А-95 Євро 5 Е0', '47'], ['А-92 Євро 5 Е0', '0']])
   })
   it('Відомість теж містить нульові рядки', () => {
-    expect(grid(buildVidomist(inp)).filter((r) => r[7] === '0').length).toBeGreaterThan(5)
+    expect(grid(buildVidomist(inp)).filter((r) => r[6] === '0').length).toBeGreaterThan(5)
   })
 })
 
@@ -119,15 +119,20 @@ describe('об’єднані клітинки і вирівнювання по 
       expect(p.rowSpan).toBe(2)
     }
   })
-  it('Відомість: колонки машини об’єднані (№, підрозділ, марка, тип, номер, № листа, спідометр)', () => {
+  it('Відомість: колонки машини об’єднані (№, марка, тип, номер, № листа, спідометр); колонки «Підрозділ» немає', () => {
     const m = buildVidomist(inp)
     const placed = placeCells(m.body, m.colWidths.length).filter((p) => p.row === 0)
-    expect(placed.filter((p) => p.rowSpan === 2).map((p) => p.col).sort((a, b) => a - b)).toEqual([0, 1, 3, 4, 5, 6, 11])
+    expect(placed.filter((p) => p.rowSpan === 2).map((p) => p.col).sort((a, b) => a - b)).toEqual([0, 2, 3, 4, 5, 10])
   })
   it('Донесення: № і найменування об’єднані на рядки л/кг', () => {
     const m = buildDonesennya(inp)
     const placed = placeCells(m.body, m.colWidths.length).filter((p) => p.row === 0)
     expect(placed.filter((p) => p.rowSpan === 2).map((p) => p.col)).toEqual([0, 1])
+  })
+  it('Відомість без колонки «Підрозділ»', () => {
+    const m = buildVidomist(inp)
+    expect(placeCells(m.header, m.colWidths.length).some((p) => p.cell.text === 'Підрозділ')).toBe(false)
+    expect(m.colWidths).toHaveLength(11)
   })
   it('усе тіло таблиць вирівняно по центру (як в оригіналі)', () => {
     for (const m of [buildRaspiska(inp), buildVidomist(inp), buildDonesennya(inp)]) expect(m.bodyAlign.every((a) => a === 'center')).toBe(true)
