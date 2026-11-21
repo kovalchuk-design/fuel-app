@@ -18,11 +18,11 @@ export default function Balances() {
       <table className="w-full text-sm">
         <thead className="text-left text-xs text-slate-500"><tr><th>№</th><th>Техніка</th><th>Пальне</th><th className="w-32 text-right">Залишок, л</th></tr></thead>
         <tbody>
-          {vehicles.flatMap((v) =>
+          {vehicles.flatMap((v, vi) =>
             vehicleFuels.filter((vf) => vf.vehicle_id === v.id).map((vf, i) => {
               const cur = get(v.id, vf.fuel_type_id)
               return (
-                <tr key={v.id + vf.fuel_type_id} className="border-t border-slate-100">
+                <tr key={v.id + vf.fuel_type_id} className={`border-t border-slate-100 ${vi % 2 === 1 ? 'bg-slate-100' : 'bg-white'}`}>
                   <td className="py-1 text-slate-500">{i === 0 ? v.seq : ''}</td>
                   <td>{i === 0 ? v.name : ''}</td>
                   <td>{fuels.find((f) => f.id === vf.fuel_type_id)?.name}</td>
