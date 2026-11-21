@@ -57,7 +57,7 @@ export async function renderPdf(m: DocModel, fonts: PdfFonts): Promise<Blob> {
     }
   }
 
-  const SIZE = 8.5, LH = 10.5, PAD = 2.5
+  const SIZE = 8.5, LH = 10, PAD = 2.5
   const cellLines = (c: DCell, w: number, isBold: boolean) => wrap(c.text, isBold ? bold : reg, SIZE, w - 2 * PAD)
 
   const drawHeader = () => {

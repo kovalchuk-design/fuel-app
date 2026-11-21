@@ -42,22 +42,23 @@ function computed(inp: ReportInput) {
   return { rows, receipts, totals: aggregateByFuel(rows, receipts) }
 }
 
-const vOrder = (inp: ReportInput) => new Map(inp.vehicles.map((v) => [v.id, v.seq]))
 const fOrder = (inp: ReportInput) => new Map(inp.fuels.map((f) => [f.id, f.sort]))
 const fname = (inp: ReportInput, id: string) => inp.fuels.find((f) => f.id === id)?.name ?? id
-const hasData = (r: VehicleFuelRow) => r.opening || r.received || r.used || r.closing
-
-/** Рядки по одиниця×пальне у порядку документа; кожна одиниця присутня хоча б одним рядком. */
+/**
+ * Рядки по одиниця×пальне у порядку документа. Показуються ВСІ дозволені пари машини, також із нулями
+ * (потрібні для статистики), у порядку `position`; пара з даними поза довідником теж потрапляє в документ.
+ */
 function orderedRows(inp: ReportInput, rows: VehicleFuelRow[]): VehicleFuelRow[] {
-  const vo = vOrder(inp), fo = fOrder(inp)
-  const sorted = [...rows].sort((a, b) => (vo.get(a.vehicleId)! - vo.get(b.vehicleId)!) || (fo.get(a.fuelTypeId)! - fo.get(b.fuelTypeId)!))
+  const byPair = new Map(rows.map((r) => [`${r.vehicleId}|${r.fuelTypeId}`, r]))
+  const fo = fOrder(inp)
   const out: VehicleFuelRow[] = []
   for (const v of [...inp.vehicles].sort((a, b) => a.seq - b.seq)) {
-    const own = sorted.filter((r) => r.vehicleId === v.id && hasData(r))
-    if (own.length) out.push(...own)
-    else {
-      const f = inp.vehicleFuels.filter((vf) => vf.vehicle_id === v.id).map((vf) => vf.fuel_type_id).sort((a, b) => fo.get(a)! - fo.get(b)!)[0]
-      if (f) out.push({ vehicleId: v.id, fuelTypeId: f, opening: 0, received: 0, used: 0, closing: 0, odometerStart: null, odometerEnd: null, km: null })
+    const pairs = inp.vehicleFuels.filter((vf) => vf.vehicle_id === v.id)
+      .sort((a, b) => (a.position - b.position) || (fo.get(a.fuel_type_id)! - fo.get(b.fuel_type_id)!))
+      .map((vf) => vf.fuel_type_id)
+    const extra = rows.filter((r) => r.vehicleId === v.id && !pairs.includes(r.fuelTypeId)).map((r) => r.fuelTypeId)
+    for (const f of [...pairs, ...extra]) {
+      out.push(byPair.get(`${v.id}|${f}`) ?? { vehicleId: v.id, fuelTypeId: f, opening: 0, received: 0, used: 0, closing: 0, odometerStart: null, odometerEnd: null, km: null })
     }
   }
   return out

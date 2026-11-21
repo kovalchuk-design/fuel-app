@@ -81,3 +81,25 @@ describe('спідометр належить машині', () => {
     expect(r.slice(3, 5)).toEqual(['242969', '242969'])
   })
 })
+
+describe('нульові рядки пального показуються (для статистики)', () => {
+  const rows = buildRaspiska(inp).body
+  const of = (name: string) => rows.filter((_, i) => {
+    // рядки машини: перший з назвою, далі порожні в колонці назви до наступної машини
+    const start = rows.findIndex((x) => x[1].text === name)
+    let end = start + 1
+    while (end < rows.length && rows[end][1].text === '') end++
+    return i >= start && i < end
+  })
+  it('ГАЗ 32213: два види пального — А-92 (5) і А-95 (0)', () => {
+    const r = of('ГАЗ 32213').map((x) => [x[5].text, x[6].text])
+    expect(r).toEqual([['А-92 Євро 5 Е0', '5'], ['А-95 Євро 5 Е0', '0']])
+  })
+  it('Фольцваген: А-95 (47) і А-92 (0) у порядку вихідної таблиці', () => {
+    expect(of('Фольцваген').map((x) => [x[5].text, x[6].text])).toEqual([['А-95 Євро 5 Е0', '47'], ['А-92 Євро 5 Е0', '0']])
+  })
+  it('Відомість теж містить нульові рядки', () => {
+    const v = buildVidomist(inp).body.filter((r) => r[7].text === '0')
+    expect(v.length).toBeGreaterThan(5)
+  })
+})

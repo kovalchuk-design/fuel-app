@@ -1,7 +1,7 @@
 import { placeCells, type DocModel } from './model.ts'
 
 const FONT = 'Times New Roman'
-const LINE_PT = 11.5 // висота одного рядка тексту 9 пт (одинарний інтервал)
+const LINE_PT = 11 // висота одного рядка тексту 9 пт (одинарний інтервал)
 
 /** Скільки рядків займе текст у колонці шириною maxChars символів (перенос по словах). */
 function wrapLines(text: string, maxChars: number): number {
@@ -58,11 +58,11 @@ export async function renderXlsx(m: DocModel): Promise<Blob> {
     }
     if (header) {
       // Висота рядків заголовка за реальною кількістю рядків тексту; об'єднані клітинки не мають зайвого простору.
-      const heights = rows.map(() => LINE_PT + 4)
+      const heights = rows.map(() => LINE_PT + 3)
       const placed = placeCells(rows, nc)
       const need = (p: (typeof placed)[number]) => {
         const chars = (ws.columns.slice(p.col, p.col + p.colSpan).reduce((a, c) => a + (c.width ?? 8), 0)) * 0.95
-        return wrapLines(p.cell.text, Math.max(3, Math.floor(chars))) * LINE_PT + 4
+        return wrapLines(p.cell.text, Math.max(3, Math.floor(chars))) * LINE_PT + 3
       }
       for (const p of placed) if (p.rowSpan === 1) heights[p.row] = Math.max(heights[p.row], need(p))
       for (const p of placed) {
