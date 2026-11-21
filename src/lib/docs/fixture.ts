@@ -36,7 +36,8 @@ export function octoberFixture(): ReportInput {
   const vid = (s: number) => `v${s}`
   const vehicles = VEHICLES.map(([seq, name, vehicle_type, military_number, is_generator]) => ({ id: vid(seq), seq, name, vehicle_type, military_number, unit: 'ВМЗ', is_generator }))
   const fuels = FUELS.map((name, i) => ({ id: name, name, kind: 'fuel' as const, sort: i + 1 }))
-  const vehicleFuels = ROWS.map(([s, f]) => ({ vehicle_id: vid(s), fuel_type_id: f }))
+  const posOf = new Map<number, number>()
+  const vehicleFuels = ROWS.map(([s, f]) => { const p = (posOf.get(s) ?? 0) + 1; posOf.set(s, p); return { vehicle_id: vid(s), fuel_type_id: f, position: p } })
   const balances = ROWS.map(([s, f, o]) => ({ period_id: 'p', vehicle_id: vid(s), fuel_type_id: f, opening: o, measured_closing: null }))
   const withUse = ROWS.filter(([, , , r, u]) => r || u)
   const waybills = withUse.map(([s, f, , r, u], i) => ({

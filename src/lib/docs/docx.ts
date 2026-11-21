@@ -29,11 +29,11 @@ export async function renderDocx(m: DocModel): Promise<Blob> {
             width: { size: w, type: D.WidthType.DXA },
             borders,
             verticalAlign: D.VerticalAlign.CENTER,
-            margins: { top: 30, bottom: 30, left: 60, right: 60 },
+            margins: { top: 20, bottom: 20, left: 60, right: 60 },
             children: [new D.Paragraph({
               alignment: jc(header ? 'center' : (p.cell.align ?? m.bodyAlign[p.col])),
               // Одинарний інтервал без відступів: заголовок не «розтягується» на всю висоту клітинки.
-              spacing: { before: 0, after: 0, line: 240, lineRule: D.LineRuleType.AUTO },
+              spacing: { before: 0, after: 0, line: 210, lineRule: D.LineRuleType.EXACT },
               children: [run(p.cell.text, 9, header || !!p.cell.bold)],
             })],
           })

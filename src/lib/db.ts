@@ -5,7 +5,7 @@ import { supabase } from './supabase.ts'
 
 export interface FuelType { id: string; name: string; kind: 'fuel' | 'lubricant'; sort: number }
 export interface Vehicle { id: string; seq: number; name: string; vehicle_type: string | null; military_number: string | null; unit: string; is_generator: boolean }
-export interface VehicleFuel { vehicle_id: string; fuel_type_id: string }
+export interface VehicleFuel { vehicle_id: string; fuel_type_id: string; position: number }
 export interface Period { id: string; date_from: string; date_to: string; label: string | null; report_year: number; report_month: number; status: 'draft' | 'closed' }
 export interface ReceiptRow { id: string; period_id: string; fuel_type_id: string; liters: number; kg: number | null; doc_ref: string | null }
 export interface WaybillRow {
@@ -24,7 +24,7 @@ export async function loadRefs() {
   const [fuels, vehicles, vf] = await Promise.all([
     supabase.from('fuel_types').select('*').order('sort'),
     supabase.from('vehicles').select('*').order('seq'),
-    supabase.from('vehicle_fuels').select('*'),
+    supabase.from('vehicle_fuels').select('*').order('position'),
   ])
   return { fuels: unwrap<FuelType[]>(fuels), vehicles: unwrap<Vehicle[]>(vehicles), vehicleFuels: unwrap<VehicleFuel[]>(vf) }
 }
