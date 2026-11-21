@@ -132,49 +132,71 @@ export function buildRaspiska(inp: ReportInput): DocModel {
   return model
 }
 
-/** Відомість заміру автомобільного пального в баках машин. */
+/**
+ * Відомість заміру: машини розбиті на секції за видом пального (А-80; А-95/А-92; дизель).
+ * Після кожної секції йдуть підсумки («ВСЬОГО») по видах пального цієї секції. Мастила не входять (це відомість пального).
+ */
 export function buildVidomist(inp: ReportInput): DocModel {
   const { rows } = computed(inp)
-  const list = orderedRows(inp, rows)
-  const veh = new Map(inp.vehicles.map((v) => [v.id, v]))
+  const byPair = new Map(rows.map((r) => [`${r.vehicleId}|${r.fuelTypeId}`, r]))
   const meas = new Map(inp.balances.map((b) => [`${b.vehicle_id}|${b.fuel_type_id}`, b.measured_closing]))
   const odo = odometers(inp)
   const lastNo = new Map<string, string>()
   for (const w of inp.waybills) if (w.number) lastNo.set(w.vehicle_id, w.number)
+  const fuelById = new Map(inp.fuels.map((f) => [f.id, f]))
+  const fo = fOrder(inp)
+
+  type Key = 'a80' | 'a92_95' | 'diesel'
+  const sections: { key: Key; match: (f: FuelType) => boolean; order: (a: FuelType, b: FuelType) => number }[] = [
+    { key: 'a80', match: (f) => f.category === 'petrol' && f.name.startsWith('А-80'), order: (a, b) => a.sort - b.sort },
+    // А-95 перед А-92, як у вихідній відомості
+    { key: 'a92_95', match: (f) => f.category === 'petrol' && !f.name.startsWith('А-80'), order: (a, b) => b.name.localeCompare(a.name) },
+    { key: 'diesel', match: (f) => f.category === 'diesel', order: (a, b) => a.sort - b.sort },
+  ]
+  const homeOf = (f: FuelType) => sections.find((sec) => sec.match(f))
+
   const body: DCell[][] = []
   const sumByFuel = new Map<string, { calc: number; fact: number }>()
-  const span = new Map<string, number>()
-  for (const r of list) span.set(r.vehicleId, (span.get(r.vehicleId) ?? 0) + 1)
-  let prev = ''
-  for (const r of list) {
-    const v = veh.get(r.vehicleId)!
-    const first = prev !== r.vehicleId
-    prev = r.vehicleId
-    const rs = span.get(v.id)!
-    const fact = meas.get(`${r.vehicleId}|${r.fuelTypeId}`) ?? r.closing
-    const diff = round2(fact - r.closing)
-    const s = sumByFuel.get(r.fuelTypeId) ?? { calc: 0, fact: 0 }
-    sumByFuel.set(r.fuelTypeId, { calc: round2(s.calc + r.closing), fact: round2(s.fact + fact) })
-    // Колонки машини (№, марка, тип, номер, № листа, спідометр) об'єднані на всі рядки пального.
-    // Порядок колонок: № | Пальне | Марка | Тип | Номер | № листа | Рахується | Фактично | Надлишок | Нестача | Спідометр
-    const pieces = {
-      seq: cell(v.seq, { rowSpan: rs }), name: cell(v.name, { rowSpan: rs }),
-      type: cell(v.vehicle_type ?? '', { rowSpan: rs }), mil: cell(v.military_number ?? '', { rowSpan: rs }),
-      last: cell(lastNo.get(v.id) ?? '', { rowSpan: rs }), odo: cell(n(odo(v.id).end), { rowSpan: rs }),
+  const hasData = (r: VehicleFuelRow) => r.opening || r.received || r.used || r.closing
+  let no = 0
+
+  for (const sec of sections) {
+    const vehicles = inp.vehicles.filter((v) => v.report_group === sec.key).sort((a, b) => a.seq - b.seq)
+    if (!vehicles.length) continue
+    for (const v of vehicles) {
+      // Види пального секції (усі, з нулями) + будь-яка інша пара з рухом, щоб жоден залишок не зник із відомості.
+      const own = inp.vehicleFuels.filter((vf) => vf.vehicle_id === v.id && fuelById.get(vf.fuel_type_id) && sec.match(fuelById.get(vf.fuel_type_id)!))
+        .sort((a, b) => (a.position - b.position) || (fo.get(a.fuel_type_id)! - fo.get(b.fuel_type_id)!)).map((vf) => vf.fuel_type_id)
+      const extra = rows.filter((r) => r.vehicleId === v.id && hasData(r) && !own.includes(r.fuelTypeId) && fuelById.get(r.fuelTypeId)?.kind === 'fuel').map((r) => r.fuelTypeId)
+      const fuels = [...own, ...extra]
+      if (!fuels.length) continue
+      no++
+      const rs = fuels.length
+      const o = odo(v.id)
+      fuels.forEach((fid, i) => {
+        const r = byPair.get(`${v.id}|${fid}`) ?? { vehicleId: v.id, fuelTypeId: fid, opening: 0, received: 0, used: 0, closing: 0, odometerStart: null, odometerEnd: null, km: null }
+        const fact = meas.get(`${v.id}|${fid}`) ?? r.closing
+        const diff = round2(fact - r.closing)
+        const sm = sumByFuel.get(fid) ?? { calc: 0, fact: 0 }
+        sumByFuel.set(fid, { calc: round2(sm.calc + r.closing), fact: round2(sm.fact + fact) })
+        const first = i === 0
+        // Порядок колонок: № | Пальне | Марка | Тип | Номер | № листа | Рахується | Фактично | Надлишок | Нестача | Спідометр
+        body.push([
+          ...(first ? [cell(no, { rowSpan: rs })] : []),
+          cell(fname(inp, fid)),
+          ...(first ? [cell(v.name, { rowSpan: rs }), cell(v.vehicle_type ?? '', { rowSpan: rs }), cell(v.military_number ?? '', { rowSpan: rs }), cell(lastNo.get(v.id) ?? '', { rowSpan: rs })] : []),
+          cell(nz(r.closing)), cell(nz(fact)), cell(diff > 0 ? n(diff) : '–'), cell(diff < 0 ? n(-diff) : '–'),
+          ...(first ? [cell(n(o.end), { rowSpan: rs })] : []),
+        ])
+      })
     }
-    body.push([
-      ...(first ? [pieces.seq] : []),
-      cell(fname(inp, r.fuelTypeId)),
-      ...(first ? [pieces.name, pieces.type, pieces.mil, pieces.last] : []),
-      cell(nz(r.closing)), cell(nz(fact)), cell(diff > 0 ? n(diff) : '–'), cell(diff < 0 ? n(-diff) : '–'),
-      ...(first ? [pieces.odo] : []),
-    ])
-  }
-  const fo = fOrder(inp)
-  for (const [fid, s] of [...sumByFuel].sort((a, b) => fo.get(a[0])! - fo.get(b[0])!)) {
-    if (!s.calc && !s.fact) continue
-    body.push([cell(''), cell(fname(inp, fid), { bold: true }), cell('ВСЬОГО', { bold: true }), cell(''), cell(''), cell(''),
-      cell(nz(s.calc), { bold: true }), cell(nz(s.fact), { bold: true }), cell(''), cell(''), cell('')])
+    // Підсумки секції: по кожному виду пального секції (з нулями), одразу під машинами цієї секції.
+    const secFuels = inp.fuels.filter((f) => f.kind === 'fuel' && homeOf(f)?.key === sec.key).sort(sec.order)
+    for (const f of secFuels) {
+      const t = sumByFuel.get(f.id) ?? { calc: 0, fact: 0 }
+      body.push([cell(''), cell(f.name, { bold: true }), cell('ВСЬОГО', { bold: true }), cell(''), cell(''), cell(''),
+        cell(nz(t.calc), { bold: true }), cell(nz(t.fact), { bold: true }), cell(''), cell(''), cell('')])
+    }
   }
   const h = (t: string, o: Partial<DCell> = {}) => cell(t, { bold: true, align: 'center', ...o })
   const model: DocModel = {
