@@ -3,15 +3,41 @@
 @import "@fontsource/manrope/600.css";
 @import "@fontsource/manrope/700.css";
 @import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
 
 @theme {
   --font-sans: "Manrope", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --color-ink: #1b2621;
+  --color-muted: #566259;
+  --color-paper: #f2f4ef;
+  --color-surface: #ffffff;
+  --color-line: #d8ddd3;
+  --color-stripe: #eceee7;
+  --color-accent: #2d5f46;
+  --color-accent-strong: #234a37;
+  --color-accent-soft: #e1eee6;
+  --color-warn: #a85b00;
+  --color-warn-soft: #fbebd3;
+  --color-danger: #b3261e;
+  --color-danger-soft: #fbe4e1;
 }
 
-body { @apply bg-slate-50 text-slate-900 font-sans; }
+body { @apply bg-paper font-sans text-ink antialiased; }
 
-/* Прибираємо стрілочки (spinner) у числових полях */
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+/* Числові поля без стрілочок */
 input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Розграфлений журнал: фон екрана входу */
+.ledger-bg {
+  background-color: var(--color-paper);
+  background-image:
+    linear-gradient(to right, transparent 71px, color-mix(in srgb, var(--color-danger) 35%, transparent) 71px 72px, transparent 72px),
+    repeating-linear-gradient(to bottom, transparent 0 31px, color-mix(in srgb, var(--color-accent) 16%, transparent) 31px 32px);
+}
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

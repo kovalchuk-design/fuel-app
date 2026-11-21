@@ -38,29 +38,32 @@ export default function DocumentsPanel({ input, blocked }: { input: ReportInput;
 
   return (
     <Card title="Документи">
-      {blocked && <p className="mb-3 text-sm text-red-700">Усуньте розбіжності у звірці вище, щоб згенерувати документи.</p>}
+      {blocked && <p className="mb-3 text-sm text-danger">Спершу усуньте розбіжності. Після цього завантаження стане доступним.</p>}
       {err && <ErrorText>{err}</ErrorText>}
-      <ul className="divide-y divide-slate-100">
+      <ul className="-my-2 divide-y divide-line">
         {models.map((m) => (
-          <li key={m.id} className="flex flex-wrap items-center gap-2 py-2">
+          <li key={m.id} className="flex flex-wrap items-center gap-2 py-3">
             <span className="mr-auto font-semibold">{TITLES[m.id]}</span>
-            {(['xlsx', 'docx', 'pdf'] as const).map((k) => (
-              <Button key={k} variant="ghost" disabled={blocked || busy !== null} onClick={() => void run(m, k)}>
-                {busy === `${m.id}-${k}` ? '…' : k.toUpperCase()}
-              </Button>
-            ))}
+            <div className="flex overflow-hidden rounded-md border border-line" role="group" aria-label={`Завантажити: ${TITLES[m.id]}`}>
+              {(['xlsx', 'docx', 'pdf'] as const).map((k) => (
+                <button key={k} disabled={blocked || busy !== null} onClick={() => void run(m, k)}
+                  className="h-9 border-r border-line bg-surface px-3 text-sm font-semibold last:border-r-0 hover:bg-stripe disabled:cursor-not-allowed disabled:opacity-45">
+                  {busy === `${m.id}-${k}` ? '…' : k.toUpperCase()}
+                </button>
+              ))}
+            </div>
             <Button variant="ghost" disabled={blocked || busy !== null} onClick={() => void run(m, 'preview')}>Перегляд</Button>
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-xs text-slate-500">кг у Донесенні показуються лише там, де є надходження з вказаними кг (густина береться з них).</p>
+      <p className="mt-3 text-xs text-muted">Кілограми у Донесенні показуються для пального, де в надходженнях вказано кг: густина береться з них.</p>
       {preview && (
-        <div className="fixed inset-0 z-10 flex flex-col bg-slate-900/60 p-4" role="dialog" aria-label={preview}>
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-t-lg bg-white px-4 py-2">
+        <div className="fixed inset-0 z-10 flex flex-col bg-ink/60 p-3 sm:p-4" role="dialog" aria-modal="true" aria-label={preview}>
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-t-lg bg-surface px-4 py-2.5">
             <strong>{preview}</strong>
             <Button variant="ghost" onClick={() => setPreview(null)}>Закрити</Button>
           </div>
-          <div ref={host} className="mx-auto w-full max-w-6xl flex-1 overflow-auto rounded-b-lg bg-slate-200" />
+          <div ref={host} className="mx-auto w-full max-w-6xl flex-1 overflow-auto rounded-b-lg bg-stripe" />
         </div>
       )}
     </Card>
