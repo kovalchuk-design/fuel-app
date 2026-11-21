@@ -1,6 +1,8 @@
+import { Fragment } from 'react'
 import { useParams } from 'react-router'
 import { useRefs } from '../auth/Refs.tsx'
-import { Card, ErrorText, fmt, inputCls, Scroll, tbl, td, th, thR } from '../components/ui.tsx'
+import { Card, ErrorText, fmt, inputCls, num, Scroll, tbl, td, th, thR } from '../components/ui.tsx'
+import { summarizeByFuel } from '../lib/calc/index.ts'
 import { useAsync } from '../hooks/useAsync.ts'
 import { listBalances, listFuelKg, listPeriodVehicles, saveBalance, saveFuelKg, saveOdometerOpen } from '../lib/db.ts'
 
@@ -11,6 +13,7 @@ export default function Balances() {
   const { data, error, reload } = useAsync(() => listBalances(id), [id])
   const odo = useAsync(() => listPeriodVehicles(id), [id])
   const kg = useAsync(() => listFuelKg(id), [id])
+  const summary = summarizeByFuel(fuels, (data ?? []).map((b) => ({ fuelTypeId: b.fuel_type_id, opening: b.opening })))
   const get = (v: string, f: string) => data?.find((b) => b.vehicle_id === v && b.fuel_type_id === f)
 
   return (
@@ -53,6 +56,28 @@ export default function Balances() {
           </tbody>
         </table>
       </Scroll>
+
+      <div className="mt-6 border-t-2 border-ink pt-4">
+        <h3 className="mb-2 text-sm font-bold">Разом по видах пального, л</h3>
+        <Scroll>
+          <table className={`${tbl} min-w-[24rem]`}>
+            <thead><tr><th className={`${th} w-80`}>Вид пального</th><th className={`${thR} w-36`}>Залишок, л</th><th className={th} /></tr></thead>
+            <tbody>
+              {summary.groups.map((g) => (
+                <Fragment key={g.title}>
+                  <tr className="border-t border-line bg-stripe"><td className={`${td} font-bold`}>{g.title}</td><td className={`${num} font-bold`}>{fmt(g.total)}</td><td /></tr>
+                  {g.rows.map((r) => (
+                    <tr key={r.fuelTypeId} className="border-t border-line">
+                      <td className={`${td} pl-6`}>{r.name}</td><td className={num}>{fmt(r.liters)}</td><td />
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
+              <tr className="border-t-2 border-ink"><td className={`${td} font-bold`}>Усього пального</td><td className={`${num} font-bold`}>{fmt(summary.total)}</td><td /></tr>
+            </tbody>
+          </table>
+        </Scroll>
+      </div>
     </Card>
 
     <Card title="Спідометр на початок періоду, км">
