@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Button, Card, ErrorText, Field } from '../components/ui.tsx'
+import { Button, ErrorText, Field } from '../components/ui.tsx'
 import { supabase } from '../lib/supabase.ts'
 
 export default function Login() {
@@ -17,16 +17,17 @@ export default function Login() {
   }
 
   return (
-    <div className="mx-auto mt-24 max-w-sm px-4">
-      <Card>
-        <h1 className="mb-4 text-xl font-bold">Вхід</h1>
-        <form onSubmit={submit} className="flex flex-col gap-3">
+    <div className="ledger-bg flex min-h-screen items-center justify-center px-4">
+      <div className="w-full max-w-sm rounded-lg border border-line bg-surface p-6">
+        <h1 className="text-2xl font-bold tracking-tight">Облік ПММ</h1>
+        <p className="mb-5 mt-1 text-sm text-muted">Пальне, шляхові листи, звітні документи</p>
+        <form onSubmit={submit} className="flex flex-col gap-3.5">
           <Field label="Пошта" type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
           <Field label="Пароль" type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
           {error && <ErrorText>{error}</ErrorText>}
-          <Button disabled={busy}>Увійти</Button>
+          <Button disabled={busy}>{busy ? 'Входимо…' : 'Увійти'}</Button>
         </form>
-      </Card>
+      </div>
     </div>
   )
 }

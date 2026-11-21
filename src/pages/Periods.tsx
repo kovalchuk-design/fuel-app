@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Button, Card, ErrorText, Field, fmtDate } from '../components/ui.tsx'
+import { Button, Card, Empty, ErrorText, Field, fmtDate } from '../components/ui.tsx'
 import { useAsync } from '../hooks/useAsync.ts'
 import { createPeriod, listPeriods } from '../lib/db.ts'
 
@@ -21,30 +21,35 @@ export default function Periods() {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-[1fr_20rem]">
+    <div className="grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
       <Card title="Звітні періоди">
-        {loading && <p className="text-slate-500">Завантаження…</p>}
+        {loading && <p className="text-muted">Завантаження…</p>}
         {error && <ErrorText>{error}</ErrorText>}
-        {data?.length === 0 && <p className="text-slate-500">Періодів ще немає. Створіть перший справа.</p>}
-        <ul className="divide-y divide-slate-100">
+        {data?.length === 0 && <Empty>Періодів ще немає. Створіть перший: вкажіть дати справа.</Empty>}
+        <ul className="-mx-4 -my-4 divide-y divide-line">
           {data?.map((p) => (
             <li key={p.id}>
-              <Link to={`/period/${p.id}/receipts`} className="flex justify-between py-2 hover:text-sky-700">
-                <span className="font-semibold">{fmtDate(p.date_from)} – {fmtDate(p.date_to)} {p.label && <span className="font-normal text-slate-500">({p.label})</span>}</span>
-                <span className="text-xs text-slate-500">{p.status === 'closed' ? 'закритий' : 'чернетка'}</span>
+              <Link to={`/period/${p.id}/receipts`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-stripe">
+                <span>
+                  <span className="font-mono text-[15px] font-medium tabular-nums">{fmtDate(p.date_from)} – {fmtDate(p.date_to)}</span>
+                  {p.label && <span className="ml-3 text-sm text-muted">{p.label}</span>}
+                </span>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${p.status === 'closed' ? 'bg-accent-soft text-accent' : 'bg-warn-soft text-warn'}`}>
+                  {p.status === 'closed' ? 'закритий' : 'чернетка'}
+                </span>
               </Link>
             </li>
           ))}
         </ul>
       </Card>
       <Card title="Новий період">
-        <form onSubmit={create} className="flex flex-col gap-3">
+        <form onSubmit={create} className="flex flex-col gap-3.5">
           <Field label="З дати" type="date" required value={from} onChange={(e) => setFrom(e.target.value)} />
           <Field label="По дату" type="date" required value={to} onChange={(e) => setTo(e.target.value)} />
-          <Field label="Примітка (напр. «жовтень»)" value={label} onChange={(e) => setLabel(e.target.value)} />
+          <Field label="Примітка" placeholder="жовтень" value={label} onChange={(e) => setLabel(e.target.value)} />
           {err && <ErrorText>{err}</ErrorText>}
-          <Button>Створити</Button>
-          <p className="text-xs text-slate-500">Початкові залишки підтягнуться із попереднього періоду.</p>
+          <Button>Створити період</Button>
+          <p className="text-xs text-muted">Початкові залишки підтягнуться з попереднього періоду.</p>
         </form>
       </Card>
     </div>

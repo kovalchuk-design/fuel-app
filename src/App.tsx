@@ -1,7 +1,6 @@
 import { Link, Navigate, Route, Routes } from 'react-router'
 import { useAuth } from './auth/AuthContext.tsx'
 import { RefsProvider } from './auth/Refs.tsx'
-import { Button } from './components/ui.tsx'
 import Balances from './pages/Balances.tsx'
 import Login from './pages/Login.tsx'
 import PeriodLayout from './pages/PeriodLayout.tsx'
@@ -12,16 +11,16 @@ import Waybills from './pages/Waybills.tsx'
 
 export default function App() {
   const { session, ready, signOut } = useAuth()
-  if (!ready) return <p className="p-6 text-slate-500">Завантаження…</p>
+  if (!ready) return <p className="p-6 text-muted">Завантаження…</p>
   if (!session) return <Login />
   return (
     <RefsProvider>
       <div className="min-h-screen">
-        <header className="border-b border-slate-200 bg-white">
-          <nav className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-            <Link to="/" className="font-bold">Облік ПММ</Link>
-            <span className="ml-auto text-xs text-slate-500">{session.user.email}</span>
-            <Button variant="ghost" onClick={() => void signOut()}>Вийти</Button>
+        <header className="bg-ink text-white">
+          <nav className="mx-auto flex h-12 max-w-6xl items-center gap-4 px-4">
+            <Link to="/" className="text-[15px] font-bold tracking-tight">Облік ПММ</Link>
+            <span className="ml-auto hidden truncate text-xs text-white/70 sm:block">{session.user.email}</span>
+            <button onClick={() => void signOut()} className="h-8 rounded-md border border-white/25 px-3 text-xs font-semibold hover:bg-white/10">Вийти</button>
           </nav>
         </header>
         <main className="mx-auto max-w-6xl px-4 py-6">
@@ -41,3 +40,4 @@ export default function App() {
     </RefsProvider>
   )
 }
+
