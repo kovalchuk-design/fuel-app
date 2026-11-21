@@ -45,3 +45,9 @@ export function placeCells(rows: DCell[][], ncols: number): Placed[] {
 }
 
 export const cell = (text: string | number, o: Partial<DCell> = {}): DCell => ({ text: String(text), ...o })
+
+/** Рядок з номерами колонок під заголовком (1, 2, 3 …), як у вихідних формах. Не жирний, по центру. */
+export const numberingRow = (n: number): DCell[] =>
+  Array.from({ length: n }, (_, i) => ({ text: String(i + 1), align: 'center' as const, bold: false }))
+
+export const withNumbers = (header: DCell[][], n: number): DCell[][] => [...header, numberingRow(n)]

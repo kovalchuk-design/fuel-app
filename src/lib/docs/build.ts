@@ -1,6 +1,6 @@
 import { aggregateByFuel, buildVehicleFuelRows, round2, vehicleOdometers, type VehicleFuelRow } from '../calc/index.ts'
 import type { BalanceRow, FuelType, Period, PeriodFuelKg, PeriodVehicle, ReceiptRow, Vehicle, VehicleFuel, WaybillRow } from '../db.ts'
-import { cell, type DCell, type DocModel, type Signature } from './model.ts'
+import { cell, withNumbers, type DCell, type DocModel, type Signature } from './model.ts'
 
 export interface SignatoryDef { title: string; rank: string; name: string }
 export interface DocSettings {
@@ -109,7 +109,7 @@ export function buildRaspiska(inp: ReportInput): DocModel {
     ])
   }
   const h = (t: string, o: Partial<DCell> = {}) => cell(t, { bold: true, align: 'center', ...o })
-  return {
+  const model: DocModel = {
     id: 'raspiska',
     fileName: `Розшифровка ${dmy(inp.period.date_from)}-${dmy(inp.period.date_to)}`,
     colWidths: [4.5, 10, 9.5, 6, 6, 19, 6.5, 6.5, 6.5, 8, 6.5, 6, 6.5],
@@ -128,6 +128,8 @@ export function buildRaspiska(inp: ReportInput): DocModel {
     after: [],
     signatures: sig(inp.settings.signatories.logistics),
   }
+  model.header = withNumbers(model.header, model.colWidths.length)
+  return model
 }
 
 /** Відомість заміру автомобільного пального в баках машин. */
@@ -175,7 +177,7 @@ export function buildVidomist(inp: ReportInput): DocModel {
       cell(nz(s.calc), { bold: true }), cell(nz(s.fact), { bold: true }), cell(''), cell(''), cell('')])
   }
   const h = (t: string, o: Partial<DCell> = {}) => cell(t, { bold: true, align: 'center', ...o })
-  return {
+  const model: DocModel = {
     id: 'vidomist',
     fileName: `Відомість заміру ${dmy(inp.period.date_to)}`,
     colWidths: [4, 21, 12, 8, 10, 8, 8, 8.5, 7.5, 8.5, 8],
@@ -195,6 +197,8 @@ export function buildVidomist(inp: ReportInput): DocModel {
     after: [],
     signatures: sig(inp.settings.signatories.logistics),
   }
+  model.header = withNumbers(model.header, model.colWidths.length)
+  return model
 }
 
 /** Донесення про наявність та проходження матеріальних засобів (Додаток 17). */
@@ -228,7 +232,7 @@ export function buildDonesennya(inp: ReportInput): DocModel {
   }
   const s = inp.settings.signatories
   const h = (t: string, o: Partial<DCell> = {}) => cell(t, { bold: true, align: 'center', ...o })
-  return {
+  const model: DocModel = {
     id: 'donesennya',
     fileName: `Донесення ${dmy(inp.period.date_from)}-${dmy(inp.period.date_to)}`,
     colWidths: [4.5, 21, 5, 7.5, 7.5, 8, 8.5, 6, 7.5, 8.5, 7, 9],
@@ -257,6 +261,8 @@ export function buildDonesennya(inp: ReportInput): DocModel {
       ...sig(s.commander), ...sig(s.supply), ...sig(s.logistics), ...sig(s.pmm, 'ПОГОДЖЕНО:'),
     ],
   }
+  model.header = withNumbers(model.header, model.colWidths.length)
+  return model
 }
 
 export const buildAll = (inp: ReportInput) => [buildVidomist(inp), buildRaspiska(inp), buildDonesennya(inp)]
