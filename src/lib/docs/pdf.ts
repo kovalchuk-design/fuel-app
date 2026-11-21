@@ -95,22 +95,41 @@ export async function renderPdf(m: DocModel, fonts: PdfFonts): Promise<Blob> {
   y -= 6
   drawHeader()
 
-  for (const row of m.body) {
-    const placed = placeCells([row], m.colWidths.length)
-    const h = Math.max(LH + 2 * PAD, ...placed.map((p) => cellLines(p.cell, xs[p.col + p.colSpan] - xs[p.col], !!p.cell.bold).length * LH + 2 * PAD))
-    if (y - h < MB) { newPage(); drawHeader() }
-    for (const p of placed) {
+  // Тіло: клітинки з rowSpan малюються разом із усією групою рядків, а групу не розривають між сторінками.
+  const bodyPlaced = placeCells(m.body, m.colWidths.length)
+  const groupEnd = m.body.map((_, i) => bodyPlaced.filter((p) => p.row <= i && p.row + p.rowSpan - 1 >= i).reduce((mx, p) => Math.max(mx, p.row + p.rowSpan - 1), i))
+  let r0 = 0
+  while (r0 < m.body.length) {
+    // Група: від r0, поки хоч одна клітинка з rowSpan перекриває наступний рядок.
+    let r1 = r0
+    for (let r = r0; r <= r1; r++) r1 = Math.max(r1, groupEnd[r])
+    const rows = Array.from({ length: r1 - r0 + 1 }, (_, k) => r0 + k)
+    const hs = rows.map(() => LH + 2 * PAD)
+    const cells = bodyPlaced.filter((p) => p.row >= r0 && p.row <= r1)
+    const lines = (p: (typeof cells)[number]) => cellLines(p.cell, xs[p.col + p.colSpan] - xs[p.col], !!p.cell.bold).length
+    for (const p of cells) if (p.rowSpan === 1) hs[p.row - r0] = Math.max(hs[p.row - r0], lines(p) * LH + 2 * PAD)
+    for (const p of cells) {
+      const have = hs.slice(p.row - r0, p.row - r0 + p.rowSpan).reduce((a, b) => a + b, 0)
+      const need = lines(p) * LH + 2 * PAD
+      if (need > have) hs[p.row - r0 + p.rowSpan - 1] += need - have
+    }
+    const total = hs.reduce((a, b) => a + b, 0)
+    if (y - total < MB) { newPage(); drawHeader() }
+    const tops = hs.reduce<number[]>((acc, h) => [...acc, acc[acc.length - 1] - h], [y])
+    for (const p of cells) {
       const x0 = ML + xs[p.col], w = xs[p.col + p.colSpan] - xs[p.col]
-      page.drawRectangle({ x: x0, y: y - h, width: w, height: h, borderColor: black, borderWidth: 0.4 })
+      const top = tops[p.row - r0], h = top - tops[p.row - r0 + p.rowSpan]
+      page.drawRectangle({ x: x0, y: top - h, width: w, height: h, borderColor: black, borderWidth: 0.4 })
       const font = p.cell.bold ? bold : reg
-      const lines = cellLines(p.cell, w, !!p.cell.bold)
-      let ty = y - (h - lines.length * LH) / 2 - SIZE
-      for (const ln of lines) {
+      const ls = cellLines(p.cell, w, !!p.cell.bold)
+      let ty = top - (h - ls.length * LH) / 2 - SIZE
+      for (const ln of ls) {
         page.drawText(ln, { x: x0 + textX(p.cell.align ?? m.bodyAlign[p.col], 0, w, font.widthOfTextAtSize(ln, SIZE)), y: ty, size: SIZE, font, color: black })
         ty -= LH
       }
     }
-    y -= h
+    y -= total
+    r0 = r1 + 1
   }
 
   y -= 10

@@ -81,14 +81,19 @@ export function buildRaspiska(inp: ReportInput): DocModel {
   const veh = new Map(inp.vehicles.map((v) => [v.id, v]))
   const odo = odometers(inp)
   const body: DCell[][] = []
+  const span = new Map<string, number>()
+  for (const r of list) span.set(r.vehicleId, (span.get(r.vehicleId) ?? 0) + 1)
   let prev = ''
   for (const r of list) {
     const v = veh.get(r.vehicleId)!
     const first = prev !== r.vehicleId
     prev = r.vehicleId
+    const rs = span.get(v.id)!
+    const o = odo(v.id)
+    // Колонки, що стосуються машини, об'єднуються на всі її рядки пального і центруються.
     body.push([
-      cell(first ? v.seq : ''), cell(first ? v.name : ''), cell(first ? (v.military_number ?? '') : ''),
-      cell(first ? n(odo(v.id).start) : ''), cell(first ? n(odo(v.id).end) : ''),
+      ...(first ? [cell(v.seq, { rowSpan: rs }), cell(v.name, { rowSpan: rs }), cell(v.military_number ?? '', { rowSpan: rs }),
+        cell(n(o.start), { rowSpan: rs }), cell(n(o.end), { rowSpan: rs })] : []),
       cell(fname(inp, r.fuelTypeId)), cell(nz(r.opening)), cell(r.received ? n(r.received) : ''),
       cell(r.used ? n(r.used) : ''), cell(r.used ? n(r.used) : ''), cell(nz(r.closing)), cell(''), cell(''),
     ])
@@ -118,7 +123,7 @@ export function buildRaspiska(inp: ReportInput): DocModel {
       [h('Початок місяця'), h('Кінець місяця')],
     ],
     body,
-    bodyAlign: ['center', 'left', 'center', 'right', 'right', 'left', 'right', 'right', 'right', 'right', 'right', 'right', 'left'],
+    bodyAlign: ['center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center'],
     after: [],
     signatures: sig(inp.settings.signatories.logistics),
   }
@@ -135,20 +140,31 @@ export function buildVidomist(inp: ReportInput): DocModel {
   for (const w of inp.waybills) if (w.number) lastNo.set(w.vehicle_id, w.number)
   const body: DCell[][] = []
   const sumByFuel = new Map<string, { calc: number; fact: number }>()
+  const span = new Map<string, number>()
+  for (const r of list) span.set(r.vehicleId, (span.get(r.vehicleId) ?? 0) + 1)
   let prev = ''
   for (const r of list) {
     const v = veh.get(r.vehicleId)!
     const first = prev !== r.vehicleId
     prev = r.vehicleId
+    const rs = span.get(v.id)!
     const fact = meas.get(`${r.vehicleId}|${r.fuelTypeId}`) ?? r.closing
     const diff = round2(fact - r.closing)
     const s = sumByFuel.get(r.fuelTypeId) ?? { calc: 0, fact: 0 }
     sumByFuel.set(r.fuelTypeId, { calc: round2(s.calc + r.closing), fact: round2(s.fact + fact) })
+    // Колонки машини (№, підрозділ, марка, тип, номер, № листа, спідометр) об'єднані на всі рядки пального.
+    // Порядок колонок: № | Підрозділ | Пальне | Марка | Тип | Номер | № листа | Рахується | Фактично | Надлишок | Нестача | Спідометр
+    const pieces = {
+      seq: cell(v.seq, { rowSpan: rs }), unit: cell(v.unit, { rowSpan: rs }), name: cell(v.name, { rowSpan: rs }),
+      type: cell(v.vehicle_type ?? '', { rowSpan: rs }), mil: cell(v.military_number ?? '', { rowSpan: rs }),
+      last: cell(lastNo.get(v.id) ?? '', { rowSpan: rs }), odo: cell(n(odo(v.id).end), { rowSpan: rs }),
+    }
     body.push([
-      cell(first ? v.seq : ''), cell(first ? v.unit : ''), cell(fname(inp, r.fuelTypeId)),
-      cell(first ? v.name : ''), cell(first ? (v.vehicle_type ?? '') : ''), cell(first ? (v.military_number ?? '') : ''),
-      cell(first ? (lastNo.get(v.id) ?? '') : ''), cell(nz(r.closing)), cell(nz(fact)),
-      cell(diff > 0 ? n(diff) : '–'), cell(diff < 0 ? n(-diff) : '–'), cell(first ? n(odo(v.id).end) : ''),
+      ...(first ? [pieces.seq, pieces.unit] : []),
+      cell(fname(inp, r.fuelTypeId)),
+      ...(first ? [pieces.name, pieces.type, pieces.mil, pieces.last] : []),
+      cell(nz(r.closing)), cell(nz(fact)), cell(diff > 0 ? n(diff) : '–'), cell(diff < 0 ? n(-diff) : '–'),
+      ...(first ? [pieces.odo] : []),
     ])
   }
   const fo = fOrder(inp)
@@ -174,7 +190,7 @@ export function buildVidomist(inp: ReportInput): DocModel {
         h('Надлишок, літрів'), h('Невистачає, літрів'), h('Примітка (спідометр)')],
     ],
     body,
-    bodyAlign: ['center', 'center', 'left', 'left', 'left', 'center', 'center', 'right', 'right', 'center', 'center', 'right'],
+    bodyAlign: ['center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center'],
     after: [],
     signatures: sig(inp.settings.signatories.logistics),
   }
@@ -203,11 +219,11 @@ export function buildDonesennya(inp: ReportInput): DocModel {
     const recKg = inp.receipts.filter((r) => r.fuel_type_id === fid).reduce((a, r) => a + (r.kg ?? 0), 0)
     no++
     body.push([
-      cell(no), cell(fname(inp, fid)), cell('л'), cell(nz(t.opening)), cell(nz(t.received)), cell(nz(byWaybill)), cell(nz(byAgg)), cell(nz(t.used)),
+      cell(no, { rowSpan: 2 }), cell(fname(inp, fid), { rowSpan: 2 }), cell('л'), cell(nz(t.opening)), cell(nz(t.received)), cell(nz(byWaybill)), cell(nz(byAgg)), cell(nz(t.used)),
       cell(nz(t.closing)), cell(nz(t.used)), cell('0'), cell('0'),
     ])
     body.push([
-      cell(''), cell(''), cell('кг'), cell(kgOf(fid, t.opening)), cell(recKg ? n(recKg) : kgOf(fid, t.received)), cell(kgOf(fid, byWaybill)),
+      cell('кг'), cell(kgOf(fid, t.opening)), cell(recKg ? n(recKg) : kgOf(fid, t.received)), cell(kgOf(fid, byWaybill)),
       cell(kgOf(fid, byAgg)), cell(kgOf(fid, t.used)), cell(kgOf(fid, t.closing)), cell(''), cell(''), cell('')
     ])
   }
@@ -233,7 +249,7 @@ export function buildDonesennya(inp: ReportInput): DocModel {
       [h('По шляхових листах'), h('По робочих листах агрегатів'), h('Усього')],
     ],
     body,
-    bodyAlign: ['center', 'left', 'center', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right'],
+    bodyAlign: ['center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center', 'center'],
     after: [
       { text: `Контрольне число: ${no} (порядкових номерів)`, align: 'left', size: 9, bold: true },
       { text: `Пояснення: ${inp.settings.explanation ?? ''}`, align: 'left', size: 9 },
