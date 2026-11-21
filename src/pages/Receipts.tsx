@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useParams } from 'react-router'
 import { useRefs } from '../auth/Refs.tsx'
-import { Button, Card, Empty, ErrorText, Field, fmt, inputCls, num, Scroll, tbl, td, th, thR } from '../components/ui.tsx'
+import { Button, Card, DeleteX, Empty, ErrorText, Field, fmt, inputCls, num, Scroll, tbl, td, th, thR } from '../components/ui.tsx'
 import { useAsync } from '../hooks/useAsync.ts'
 import { deleteRow, insertRow, listReceipts } from '../lib/db.ts'
 
@@ -35,12 +35,12 @@ export default function Receipts() {
               <thead><tr><th className={th}>Пальне</th><th className={thR}>Літри</th><th className={thR}>кг</th><th className={th}>Документ</th><th className={th} /></tr></thead>
               <tbody>
                 {data?.map((r) => (
-                  <tr key={r.id} className="border-t border-line hover:bg-stripe">
+                  <tr key={r.id} className="group border-t border-line hover:bg-stripe">
                     <td className={`${td} font-semibold`}>{name(r.fuel_type_id)}</td>
                     <td className={num}>{fmt(r.liters)}</td>
                     <td className={`${num} text-muted`}>{fmt(r.kg)}</td>
                     <td className={td}>{r.doc_ref}</td>
-                    <td className="px-2 text-right"><Button variant="danger" aria-label="Видалити надходження" className="h-8 px-2" onClick={async () => { await deleteRow('supplier_receipts', r.id); await reload() }}>Видалити</Button></td>
+                    <td className="px-2 text-right"><DeleteX label="Видалити надходження" onClick={async () => { await deleteRow('supplier_receipts', r.id); await reload() }} /></td>
                   </tr>
                 ))}
               </tbody>

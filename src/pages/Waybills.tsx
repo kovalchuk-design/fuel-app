@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useParams } from 'react-router'
 import { useRefs } from '../auth/Refs.tsx'
-import { Button, Card, Empty, ErrorText, Field, fmt, inputCls, num, Scroll, tbl, td, th, thR } from '../components/ui.tsx'
+import { Button, Card, DeleteX, Empty, ErrorText, Field, fmt, inputCls, num, Scroll, tbl, td, th, thR } from '../components/ui.tsx'
 import { useAsync } from '../hooks/useAsync.ts'
 import { deleteRow, insertRow, listWaybills } from '../lib/db.ts'
 
@@ -45,14 +45,14 @@ export default function Waybills() {
               <thead><tr><th className={th}>Техніка</th><th className={th}>Пальне</th><th className={th}>№ листа</th><th className={thR}>Отримано</th><th className={thR}>Використано</th><th className={thR}>Спідометр</th><th className={th} /></tr></thead>
               <tbody>
                 {list.map((w) => (
-                  <tr key={w.id} className="border-t border-line hover:bg-stripe">
+                  <tr key={w.id} className="group border-t border-line hover:bg-stripe">
                     <td className={`${td} font-semibold`}>{vehicles.find((v) => v.id === w.vehicle_id)?.name}</td>
                     <td className={td}>{fuelName(w.fuel_type_id)}</td>
                     <td className={`${td} font-mono`}>{w.number}</td>
                     <td className={num}>{fmt(w.liters_received)}</td>
                     <td className={num}>{fmt(w.liters_used)}</td>
                     <td className={`${num} whitespace-nowrap text-muted`}>{w.odometer_start != null ? `${w.odometer_start} → ${w.odometer_end ?? '?'}` : '–'}</td>
-                    <td className="px-2 text-right"><Button variant="danger" aria-label="Видалити лист" className="h-8 px-2" onClick={async () => { await deleteRow('waybills', w.id); await reload() }}>Видалити</Button></td>
+                    <td className="px-2 text-right"><DeleteX label="Видалити лист" onClick={async () => { await deleteRow('waybills', w.id); await reload() }} /></td>
                   </tr>
                 ))}
               </tbody>
