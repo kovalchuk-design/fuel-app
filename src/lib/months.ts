@@ -18,9 +18,12 @@ export function skippedMonths(year: number, month: number, latest: { year: numbe
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-/** Звітний період місяця за домовленістю: з 25-го цього місяця по 25-те наступного. */
+/**
+ * Звітний період місяця: з 25-го попереднього місяця по 25-те цього. Місяць звіту = місяць, у якому період закінчується
+ * (25.09–25.10 це жовтень), як і підписано у вихідних документах.
+ */
 export function defaultRange(year: number, month: number): { from: string; to: string } {
-  const ny = month === 12 ? year + 1 : year
-  const nm = month === 12 ? 1 : month + 1
-  return { from: `${year}-${pad(month)}-25`, to: `${ny}-${pad(nm)}-25` }
+  const py = month === 1 ? year - 1 : year
+  const pm = month === 1 ? 12 : month - 1
+  return { from: `${py}-${pad(pm)}-25`, to: `${year}-${pad(month)}-25` }
 }

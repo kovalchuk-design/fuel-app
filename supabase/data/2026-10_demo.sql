@@ -1,8 +1,8 @@
--- Демо: звіт за вересень 2026 (період 25.09–25.10.2026) за наданими таблицями.
+-- Демо: звіт за жовтень 2026 (період 25.09–25.10.2026) за наданими таблицями.
 -- Залишки й спідометр — «Розшифровка напрацювання»; надходження (з кг) — «Донесення»; № листа — «№ останнього шляхового листа» з Відомості заміру.
 -- Шляхові листи відновлено з місячних підсумків: по одному зведеному листу на пару «машина × пальне».
 insert into public.periods (date_from, date_to, label, report_year, report_month)
-values ('2026-09-25', '2026-10-25', 'вересень', 2026, 9)
+values ('2026-09-25', '2026-10-25', 'жовтень', 2026, 10)
 on conflict (report_year, report_month) do nothing;
 
 insert into public.period_balances (period_id, vehicle_id, fuel_type_id, opening)
@@ -51,7 +51,7 @@ from (values
   (22, 'ДП-Артика Євро 5 В0', 200),
   (22, 'ДП-Л Євро 5 В0 (ДТ.Е К5 сорт Е)', 141)
 ) as x(seq, fuel, opening)
-join public.periods p on p.report_year = 2026 and p.report_month = 9
+join public.periods p on p.report_year = 2026 and p.report_month = 10
 join public.vehicles v on v.seq = x.seq
 join public.fuel_types f on f.name = x.fuel
 on conflict (period_id, vehicle_id, fuel_type_id) do update set opening = excluded.opening;
@@ -77,11 +77,11 @@ from (values
   (16, 341530),
   (17, 2293)
 ) as x(seq, odo)
-join public.periods p on p.report_year = 2026 and p.report_month = 9
+join public.periods p on p.report_year = 2026 and p.report_month = 10
 join public.vehicles v on v.seq = x.seq
 on conflict (period_id, vehicle_id) do update set odometer_open = excluded.odometer_open;
 
-delete from public.supplier_receipts where period_id = (select id from public.periods where report_year = 2026 and report_month = 9);
+delete from public.supplier_receipts where period_id = (select id from public.periods where report_year = 2026 and report_month = 10);
 insert into public.supplier_receipts (period_id, fuel_type_id, liters, kg)
 select p.id, f.id, x.liters, x.kg
 from (values
@@ -90,10 +90,10 @@ from (values
   ('ДП-Л Євро 5 В5', 865, 727),
   ('ДП-Л Євро 5 В0', 297, null)
 ) as x(fuel, liters, kg)
-join public.periods p on p.report_year = 2026 and p.report_month = 9
+join public.periods p on p.report_year = 2026 and p.report_month = 10
 join public.fuel_types f on f.name = x.fuel;
 
-delete from public.waybills where period_id = (select id from public.periods where report_year = 2026 and report_month = 9);
+delete from public.waybills where period_id = (select id from public.periods where report_year = 2026 and report_month = 10);
 insert into public.waybills (period_id, vehicle_id, fuel_type_id, number, liters_received, liters_used, odometer_start, odometer_end)
 select p.id, v.id, f.id, x.num, x.received, x.used, x.odo_s, x.odo_e
 from (values
@@ -116,6 +116,6 @@ from (values
   (17, 'ДП-Л Євро 5 В5', '532', 40, 36, 2293, 2621),
   (18, 'ДП-Л Євро 5 В0', null, 0, 110, null, null)
 ) as x(seq, fuel, num, received, used, odo_s, odo_e)
-join public.periods p on p.report_year = 2026 and p.report_month = 9
+join public.periods p on p.report_year = 2026 and p.report_month = 10
 join public.vehicles v on v.seq = x.seq
 join public.fuel_types f on f.name = x.fuel;
