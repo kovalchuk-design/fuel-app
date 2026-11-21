@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Button, Card, Empty, ErrorText, Field, fmtDate } from '../components/ui.tsx'
+import { Button, Card, ConfirmDialog, DeleteX, Empty, ErrorText, Field, fmtDate } from '../components/ui.tsx'
 import { useAsync } from '../hooks/useAsync.ts'
 import { createPeriod, deletePeriod, listPeriods } from '../lib/db.ts'
 
@@ -21,9 +21,11 @@ export default function Periods() {
     } catch (x) { setErr((x as Error).message) }
   }
 
-  async function remove(id: string, title: string) {
-    if (!window.confirm(`Видалити період ${title}?\nРазом із ним видаляться надходження, шляхові листи та залишки цього періоду. Дію не можна скасувати.`)) return
-    try { await deletePeriod(id); setDelErr(null); await reload() } catch (x) { setDelErr((x as Error).message) }
+  const [pending, setPending] = useState<{ id: string; title: string } | null>(null)
+  async function remove() {
+    if (!pending) return
+    try { await deletePeriod(pending.id); setDelErr(null); await reload() } catch (x) { setDelErr((x as Error).message) }
+    setPending(null)
   }
 
   return (
@@ -35,7 +37,7 @@ export default function Periods() {
         {data?.length === 0 && <Empty>Періодів ще немає. Створіть перший: вкажіть дати справа.</Empty>}
         <ul className="-mx-4 -my-4 divide-y divide-line">
           {data?.map((p) => (
-            <li key={p.id} className="flex items-center hover:bg-stripe">
+            <li key={p.id} className="group flex items-center hover:bg-stripe">
               <Link to={`/period/${p.id}/receipts`} className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3">
                 <span>
                   <span className="font-mono text-[15px] font-medium tabular-nums">{fmtDate(p.date_from)} – {fmtDate(p.date_to)}</span>
@@ -46,8 +48,10 @@ export default function Periods() {
                 </span>
               </Link>
               {p.status === 'draft' && (
-                <Button variant="danger" className="mr-3 h-8 px-2.5" aria-label={`Видалити період ${fmtDate(p.date_from)} – ${fmtDate(p.date_to)}`}
-                  onClick={() => void remove(p.id, `${fmtDate(p.date_from)} – ${fmtDate(p.date_to)}`)}>Видалити</Button>
+                <span className="mr-3">
+                  <DeleteX label={`Видалити період ${fmtDate(p.date_from)} – ${fmtDate(p.date_to)}`}
+                    onClick={() => setPending({ id: p.id, title: `${fmtDate(p.date_from)} – ${fmtDate(p.date_to)}` })} />
+                </span>
               )}
             </li>
           ))}
@@ -63,6 +67,13 @@ export default function Periods() {
           <p className="text-xs text-muted">Початкові залишки підтягнуться з попереднього періоду.</p>
         </form>
       </Card>
+      {pending && (
+        <ConfirmDialog
+          title={`Видалити період ${pending.title}?`}
+          message="Разом із ним видаляться надходження, шляхові листи та залишки цього періоду. Дію не можна скасувати."
+          onConfirm={() => void remove()} onCancel={() => setPending(null)}
+        />
+      )}
     </div>
   )
 }

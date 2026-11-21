@@ -14,13 +14,20 @@ test('чернетку періоду можна видалити після п�
     if (r.request().method() === 'DELETE') { deleted.push(r.request().url()); periods = []; return r.fulfill({ json: [] }) }
     return r.fulfill({ json: periods })
   })
-  page.on('dialog', (d) => void d.accept())
 
   await page.goto('/#/')
   await page.getByLabel('Пошта').fill('t@example.com')
   await page.getByLabel('Пароль').fill('x')
   await page.getByRole('button', { name: 'Увійти' }).click()
   await page.getByRole('button', { name: /Видалити період/ }).click()
+  const dialog = page.getByRole('alertdialog')
+  await expect(dialog).toContainText('Видалити період 21.11.2026 – 21.12.2026?')
+  // Скасування нічого не видаляє
+  await dialog.getByRole('button', { name: 'Скасувати' }).click()
+  await expect(dialog).toBeHidden()
+  expect(deleted).toHaveLength(0)
+  await page.getByRole('button', { name: /Видалити період/ }).click()
+  await dialog.getByRole('button', { name: 'Видалити' }).click()
   await expect(page.getByText('Періодів ще немає')).toBeVisible()
   expect(deleted).toHaveLength(1)
   expect(deleted[0]).toContain('id=eq.p1')
