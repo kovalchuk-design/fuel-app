@@ -78,3 +78,7 @@ export interface SettingsRow {
 
 export const getSettings = async () =>
   unwrap<SettingsRow>(await supabase.from('document_settings').select('*').eq('id', 1).single())
+
+/** Видаляє період разом із його надходженнями, листами та залишками (каскад у БД). */
+export const deletePeriod = async (id: string) =>
+  unwrap(await supabase.from('periods').delete().eq('id', id).select())
