@@ -88,7 +88,7 @@ from (values
   ('А-80 ДЗ', 290, 216),
   ('А-95 Євро 5 Е0', 160, 122),
   ('ДП-Л Євро 5 В5', 865, 727),
-  ('ДП-Л Євро 5 В0', 297, null)
+  ('ДП-Л Євро 5 В0', 297, 249)
 ) as x(fuel, liters, kg)
 join public.periods p on p.report_year = 2026 and p.report_month = 10
 join public.fuel_types f on f.name = x.fuel;
