@@ -153,15 +153,15 @@ export function buildVidomist(inp: ReportInput): DocModel {
     const diff = round2(fact - r.closing)
     const s = sumByFuel.get(r.fuelTypeId) ?? { calc: 0, fact: 0 }
     sumByFuel.set(r.fuelTypeId, { calc: round2(s.calc + r.closing), fact: round2(s.fact + fact) })
-    // Колонки машини (№, підрозділ, марка, тип, номер, № листа, спідометр) об'єднані на всі рядки пального.
-    // Порядок колонок: № | Підрозділ | Пальне | Марка | Тип | Номер | № листа | Рахується | Фактично | Надлишок | Нестача | Спідометр
+    // Колонки машини (№, марка, тип, номер, № листа, спідометр) об'єднані на всі рядки пального.
+    // Порядок колонок: № | Пальне | Марка | Тип | Номер | № листа | Рахується | Фактично | Надлишок | Нестача | Спідометр
     const pieces = {
-      seq: cell(v.seq, { rowSpan: rs }), unit: cell(v.unit, { rowSpan: rs }), name: cell(v.name, { rowSpan: rs }),
+      seq: cell(v.seq, { rowSpan: rs }), name: cell(v.name, { rowSpan: rs }),
       type: cell(v.vehicle_type ?? '', { rowSpan: rs }), mil: cell(v.military_number ?? '', { rowSpan: rs }),
       last: cell(lastNo.get(v.id) ?? '', { rowSpan: rs }), odo: cell(n(odo(v.id).end), { rowSpan: rs }),
     }
     body.push([
-      ...(first ? [pieces.seq, pieces.unit] : []),
+      ...(first ? [pieces.seq] : []),
       cell(fname(inp, r.fuelTypeId)),
       ...(first ? [pieces.name, pieces.type, pieces.mil, pieces.last] : []),
       cell(nz(r.closing)), cell(nz(fact)), cell(diff > 0 ? n(diff) : '–'), cell(diff < 0 ? n(-diff) : '–'),
@@ -171,21 +171,21 @@ export function buildVidomist(inp: ReportInput): DocModel {
   const fo = fOrder(inp)
   for (const [fid, s] of [...sumByFuel].sort((a, b) => fo.get(a[0])! - fo.get(b[0])!)) {
     if (!s.calc && !s.fact) continue
-    body.push([cell(''), cell(''), cell(fname(inp, fid), { bold: true }), cell('ВСЬОГО', { bold: true }), cell(''), cell(''), cell(''),
+    body.push([cell(''), cell(fname(inp, fid), { bold: true }), cell('ВСЬОГО', { bold: true }), cell(''), cell(''), cell(''),
       cell(nz(s.calc), { bold: true }), cell(nz(s.fact), { bold: true }), cell(''), cell(''), cell('')])
   }
   const h = (t: string, o: Partial<DCell> = {}) => cell(t, { bold: true, align: 'center', ...o })
   return {
     id: 'vidomist',
     fileName: `Відомість заміру ${dmy(inp.period.date_to)}`,
-    colWidths: [4, 6, 19.5, 10, 7.5, 9.5, 7.5, 7.5, 8, 7, 8, 7.5],
+    colWidths: [4, 21, 12, 8, 10, 8, 8, 8.5, 7.5, 8.5, 8],
     before: [
       { text: 'В І Д О М І С Т Ь', align: 'center', bold: true, size: 13 },
       { text: `заміру автомобільного пального поточного забезпечення в баках машин військової частини ${inp.settings.unit_code}`, align: 'center', size: 11 },
       { text: `за станом на ${dmy(inp.period.date_to)}${inp.period.label ? ` (${inp.period.label})` : ''}`, align: 'center', size: 11 },
     ],
     header: [
-      [h('№ з/п'), h('Підрозділ'), h('Найменування пального'), h('Марка машини'), h('Тип машини'),
+      [h('№ з/п'), h('Найменування пального'), h('Марка машини'), h('Тип машини'),
         h('Заводський (військовий) номер'), h('№ останнього шляхового листа'),
         h('Рахується за шляховим листом, літрів'), h('Фактично є в наявності, літрів'),
         h('Надлишок, літрів'), h('Невистачає, літрів'), h('Примітка (спідометр)')],
