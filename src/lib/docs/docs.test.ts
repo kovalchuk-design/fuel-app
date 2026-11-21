@@ -133,3 +133,46 @@ describe('об’єднані клітинки і вирівнювання по 
     for (const m of [buildRaspiska(inp), buildVidomist(inp), buildDonesennya(inp)]) expect(m.bodyAlign.every((a) => a === 'center')).toBe(true)
   })
 })
+
+describe('ширини колонок: назви пального в один рядок, слова заголовків не розриваються', () => {
+  // Найвужчий випадок — docx: робоча ширина 770 пт, шрифт 9 пт, поля клітинки по 3 пт.
+  const PAGE_PT = 770, PAD_PT = 6, SIZE = 9
+  const FUEL_COLS = ['Марка ПММ', 'Найменування пального', 'Найменування військового майна']
+  it('усі колонки з видом пального вміщують найдовшу назву в один рядок', async () => {
+    const { PDFDocument } = await import('pdf-lib')
+    const fontkit = (await import('@pdf-lib/fontkit')).default
+    const pdf = await PDFDocument.create(); pdf.registerFontkit(fontkit)
+    const reg = await pdf.embedFont(fonts.regular)
+    const bold = await pdf.embedFont(fonts.bold)
+    for (const m of [buildRaspiska(inp), buildVidomist(inp), buildDonesennya(inp)]) {
+      const total = m.colWidths.reduce((a, b) => a + b, 0)
+      const widthOf = (col: number) => (m.colWidths[col] / total) * PAGE_PT - PAD_PT
+      const headers = placeCells(m.header, m.colWidths.length)
+      // колонки пального за заголовком
+      const fuelCols = headers.filter((p) => FUEL_COLS.includes(p.cell.text)).map((p) => p.col)
+      expect(fuelCols.length, m.id).toBe(1)
+      for (const p of placeCells(m.body, m.colWidths.length)) {
+        if (p.col !== fuelCols[0]) continue
+        const w = (p.cell.bold ? bold : reg).widthOfTextAtSize(p.cell.text, SIZE)
+        expect(w, `${m.id}: «${p.cell.text}» ${w.toFixed(0)} пт > ${widthOf(p.col).toFixed(0)} пт`).toBeLessThanOrEqual(widthOf(p.col))
+      }
+      // військові/заводські номери (напр. «J 88K07000845») не розриваються посеред
+      const numCol = headers.find((p) => /номер/.test(p.cell.text))
+      if (numCol) {
+        for (const p of placeCells(m.body, m.colWidths.length)) {
+          if (p.col !== numCol.col || p.cell.text === '') continue
+          const w = reg.widthOfTextAtSize(p.cell.text, SIZE)
+          expect(w, `${m.id}: номер «${p.cell.text}» ${w.toFixed(0)} пт > ${widthOf(p.col).toFixed(0)} пт`).toBeLessThanOrEqual(widthOf(p.col))
+        }
+      }
+      // найдовше слово кожного заголовка вміщується без розриву посеред слова
+      for (const p of headers) {
+        const avail = p.colSpan === 1 ? widthOf(p.col) : [...Array(p.colSpan).keys()].reduce((a, k) => a + widthOf(p.col + k) + PAD_PT, 0) - PAD_PT
+        for (const word of p.cell.text.split(/\s+/)) {
+          const w = bold.widthOfTextAtSize(word, SIZE)
+          expect(w, `${m.id}: слово «${word}» у заголовку ${w.toFixed(0)} пт > ${avail.toFixed(0)} пт`).toBeLessThanOrEqual(avail)
+        }
+      }
+    }
+  })
+})
