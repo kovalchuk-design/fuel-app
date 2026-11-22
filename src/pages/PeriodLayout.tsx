@@ -25,7 +25,7 @@ export default function PeriodLayout() {
         <h1 className="text-xl font-bold">{monthName(data.report_month).charAt(0).toUpperCase() + monthName(data.report_month).slice(1)} {data.report_year}</h1>
         <p className="font-mono text-sm tabular-nums text-muted">{fmtDate(data.date_from)} – {fmtDate(data.date_to)}</p>
       </div>
-      <nav aria-label="Кроки періоду" className="flex gap-1 overflow-x-auto border-b border-line">
+      <nav aria-label="Кроки періоду" className="flex gap-1 overflow-x-auto border-b border-line pb-px">
         {steps.map(([to, label, count], i) => (
           <NavLink key={to} to={to} className={({ isActive }) =>
             `-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors ${isActive ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'}`}>
