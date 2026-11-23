@@ -16,3 +16,12 @@ test('невірний пароль показує помилку (відпов�
   await page.getByRole('button', { name: 'Увійти' }).click()
   await expect(page.getByRole('alert')).toHaveText('Невірна пошта або пароль')
 })
+
+test('назва вкладки та значки (SVG, PNG, ICO, apple-touch) задані', async ({ page }) => {
+  await page.goto('/#/')
+  await expect(page).toHaveTitle('Облік ПММ')
+  const hrefs = await page.locator('head link[rel~="icon"], head link[rel="apple-touch-icon"]').evaluateAll((els) => els.map((e) => (e as HTMLLinkElement).getAttribute('href')))
+  expect(hrefs.sort()).toEqual(['/apple-touch-icon.png', '/favicon-32.png', '/favicon.ico', '/favicon.svg'])
+  // файли значків справді віддаються
+  for (const h of hrefs) expect((await page.request.get(h!)).ok(), h!).toBe(true)
+})
